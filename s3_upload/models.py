@@ -1,4 +1,15 @@
+
+
 class UploadPolicy(object):
+    expiration = None
+    conditions = None
+
+    def __init__(self, **kwargs):
+        self.expiration = kwargs.get('expiration')
+        self.conditions = kwargs.get('conditions')
+
+
+class UploadPolicyCondition(object):
     operator = None
     key = None
     value = None

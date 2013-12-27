@@ -4,6 +4,15 @@ from django.utils.translation import ugettext as _
 
 class UploadPolicyConditionField(serializers.RelatedField):
     '''
+    The serializer field is responsible for deserializing
+    from arrays and dictionaries to UploadPolicyCondition
+    objects, and vice versa.
+
+    Though this raises ValidationError for malformed arrays
+    and dictionaries, it only validates the structure of
+    the representation, not its content. Content is
+    validated by the BaseUploadPolicySerializer subclass.
+
     A condition is in one of three formats:
       - ["content-length-range", 1048579, 10485760]
       - ["starts-with", "$key", "user/eric/"]
@@ -40,7 +49,7 @@ class UploadPolicyConditionField(serializers.RelatedField):
         '''
         from numbers import Number
         from django.core.exceptions import ValidationError
-        from s3_upload.models import UploadPolicy
+        from s3_upload.models import UploadPolicyCondition
         original_condition_list = condition_list # We use this for error reporting
         condition_list = list(condition_list)
         for item in condition_list:
@@ -89,7 +98,7 @@ class UploadPolicyConditionField(serializers.RelatedField):
                 _('Too many values in condition array: %(condition)s'),
                 params={'condition': original_condition_list},
             )
-        return UploadPolicy(
+        return UploadPolicyCondition(
             operator=operator,
             key=key,
             value=value,
@@ -102,7 +111,7 @@ class UploadPolicyConditionField(serializers.RelatedField):
         '''
         from numbers import Number
         from django.core.exceptions import ValidationError
-        from s3_upload.models import UploadPolicy
+        from s3_upload.models import UploadPolicyCondition
         if len(condition_dict) > 1:
             raise ValidationError(
                 _('Too many values in condition dictionary: %(condition)s'),
@@ -113,7 +122,7 @@ class UploadPolicyConditionField(serializers.RelatedField):
             raise ValidationError(
                 _('Values in condition dictionaries should be numbers or strings'),
             )
-        return UploadPolicy(
+        return UploadPolicyCondition(
             operator=None,
             key=key,
             value=value,
@@ -121,9 +130,16 @@ class UploadPolicyConditionField(serializers.RelatedField):
         )
 
 
-class UploadPolicySerializer(serializers.Serializer):
+class BaseUploadPolicySerializer(serializers.Serializer):
     '''
     http://docs.aws.amazon.com/AmazonS3/latest/dev/HTTPPOSTForms.html#HTTPPOSTConstructPolicy
     '''
-    expiration = serializers.DateTimeField()
-    conditions = UploadPolicyConditionField(many=True, read_only=False)
+    from django.db.models.query import EmptyQuerySet
+    expiration = serializers.DateTimeField(required=False)
+    conditions = UploadPolicyConditionField(
+        many=True,
+        read_only=False,
+        required=False,
+        queryset=EmptyQuerySet
+    )
+
