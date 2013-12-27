@@ -16,9 +16,10 @@ class UploadPolicySerializer(serializers.Serializer):
 class UploadPolicyConditionField(serializers.RelatedField):
     '''
     A condition is in one of three formats:
-      - {"bucket": "name-of-bucket"}
       - ["content-length-range", 1048579, 10485760]
       - ["starts-with", "$key", "user/eric/"]
+
+    http://docs.aws.amazon.com/AmazonS3/latest/dev/HTTPPOSTForms.html#HTTPPOSTConstructPolicy
     '''
     def to_native(self, value):
         pass
@@ -97,4 +98,7 @@ class UploadPolicyConditionField(serializers.RelatedField):
         return result
 
     def from_native_dict(self, condition_dict):
+        '''
+        {"bucket": "name-of-bucket"}
+        '''
         pass
