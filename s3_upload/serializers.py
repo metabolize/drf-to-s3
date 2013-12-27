@@ -143,7 +143,7 @@ class BaseUploadPolicySerializer(serializers.Serializer):
 
     # Subclasses should override these
     required_conditions = ['bucket']
-    optional_conditions = ['Content-Type']
+    optional_conditions = ['Content-Type', 'success_action_status']
 
     # Subclasses must override this
     #   e.g. allowed_buckets = ['my-app-storage', 'my-app-secondary-storage']
@@ -151,9 +151,14 @@ class BaseUploadPolicySerializer(serializers.Serializer):
     allowed_buckets = []
 
     # Subclasses must override this
-    #   e.g. allowed_buckets = ['public-read']
+    #   e.g. allowed_acls = ['public-read']
     # The default will disallow all ACLs.
     allowed_acls = []
+
+    # Subclasses should override this
+    #   e.g. allowed_success_action_redirect_values = ['/s3/success_redirect']
+    # The default will disallow all values for success_action_redirect.
+    allowed_success_action_redirect_values = []
 
     def validate_expiration(self, attrs, source):
         '''
@@ -180,7 +185,6 @@ class BaseUploadPolicySerializer(serializers.Serializer):
             if item.key in self.required_conditions + self.optional_conditions:
                 # validate_condition_Content-Type -> validate_condition_Content_Type
                 condition_validate_method_name = "validate_condition_%s" % item.key.replace('-', '_')
-                print condition_validate_method_name
                 condition_validate = getattr(self, condition_validate_method_name, None)
                 if condition_validate:
                     try:
@@ -193,12 +197,22 @@ class BaseUploadPolicySerializer(serializers.Serializer):
                     params={'key': item.key},
                 )
         missing_conditions = set(self.required_conditions) - set([item.key for item in conditions])
-        if missing_conditions:
-            raise ValidationError(
-                _('Missing required conditions: %(keys)s'),
-                params={'keys': list(missing_conditions)},
+        for key in missing_conditions:
+            err = ValidationError(
+                _('Required condition is missing'),
             )
+            self._errors[source + '.' + key] = list(err.messages)
         return attrs
+
+    def validate_condition_acl(self, condition):
+        if not isinstance(condition.value, basestring):
+            raise ValidationError(
+                _('ACL should be a string'),
+            )
+        if condition.value not in self.allowed_acls:
+            raise ValidationError(
+                _('ACL not allowed'),
+            )
 
     def validate_condition_bucket(self, condition):
         if not isinstance(condition.value, basestring):
@@ -208,8 +222,7 @@ class BaseUploadPolicySerializer(serializers.Serializer):
             )
         if condition.value not in self.allowed_buckets:
             raise ValidationError(
-                _('Bucket not allowed: %(value)s'),
-                params={'value': condition.value},
+                _('Bucket not allowed'),
             )
 
     def validate_condition_Content_Type(self, condition):
@@ -229,17 +242,59 @@ class BaseUploadPolicySerializer(serializers.Serializer):
         )
         try:
             first, rest = condition.value.split('/', 1)
-        except ValueError
+        except ValueError:
+            raise ValidationError(
+                _('Invalid Content-Type'),
+            )
         if any([char not in allowed_characters for char in first + rest]):
             raise ValidationError(
-                _('Content-Type should be a string: %(value)s'),
-                params={'value': condition.value},
+                _('Invalid Content-Type'),
             )
-        if not len(first) or not len(rest):
+
+    def validate_condition_success_action_status(self, condition):
+        if condition.value is None:
+            return
+        elif isinstance(condition.value, basestring):
+            if not unicode(condition.value).isnumeric():
+                raise ValidationError(
+                    _('Invalid success_action_status'),
+                )
+            status_code = int(condition.value)
+        elif isinstance(condition.value, int):
+            status_code = condition.value
+        else:
             raise ValidationError(
-                _('Invalid Content-Type: %(value)s'),
-                params={'value': condition.value},
-            )            
+                _('Invalid success_action_status'),
+            )
+        if status_code < 200 or status_code >= 400:
+            raise ValidationError(
+                _('success_action_status should be between 200 and 399'),
+            )
+
+    def validate_success_action_redirect(self, condition):
+        if condition.value is None:
+            return
+        elif not condition.value in self.allowed_success_action_redirect_values:
+            raise ValidationError(
+                _('Invalid allowed_success_action_redirect value'),
+            )
+
+    def validate_condition_key(self, condition):
+        if not isinstance(condition.value, basestring):
+            raise ValidationError(
+                _('Invalid key'),
+            )
+        elif len(condition.value.decode('utf-8')) > 1024:
+            raise ValidationError(
+                _('Key too long'),
+            )
+
+    def validate_condition_x_amz_meta_qqfilename(self, condition):
+        valid_characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~:/?#[]@!$&'()*+,;="
+        if any([char not in valid_characters for char in condition.value]):
+            raise ValidationError(
+                _('Invalid character in x-amz-meta-qqfilename'),
+            )
 
 class FineUploaderPolicySerializer(BaseUploadPolicySerializer):
     required_conditions = [
@@ -255,3 +310,15 @@ class FineUploaderPolicySerializer(BaseUploadPolicySerializer):
         'content-length-range',
     ]
 
+
+class LimitKeyToUrlCharactersMixin(object):
+    def validate_condition_key(self, condition):
+        super(LimitKeyToUrlCharactersMixin, self).validate_condition_key(condition)
+        valid_characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~:/?#[]@!$&'()*+,;="
+        if any([char not in valid_characters for char in condition.value]):
+            raise ValidationError(
+                _('Invalid character in key'),
+            )
+
+class MyFineUploaderPolicySerializer(LimitKeyToUrlCharactersMixin, FineUploaderPolicySerializer):
+    pass
