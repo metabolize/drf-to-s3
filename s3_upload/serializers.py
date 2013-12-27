@@ -64,13 +64,14 @@ class UploadPolicyConditionField(serializers.RelatedField):
                 _('Missing key in condition array: %(condition)s'),
                 params={'condition': original_condition_list},
             )
-        if key.startswith('$'):
-            key = key[1:]
-        else:
-            raise ValidationError(
-                _('Key in condition array should start with $: %(key)s'),
-                params={'key': current},
-            )
+        if operator:
+            if key.startswith('$'):
+                key = key[1:]
+            else:
+                raise ValidationError(
+                    _('Key in condition array should start with $: %(key)s'),
+                    params={'key': key},
+                )
         if len(condition_list) == 0:
             raise ValidationError(
                 _('Missing values in condition array: %(condition)s'),
