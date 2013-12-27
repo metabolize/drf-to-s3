@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from django.utils.translation import ugettext as _
 
+
 class UploadPolicyConditionField(serializers.RelatedField):
     '''
     A condition is in one of three formats:
@@ -54,7 +55,7 @@ class UploadPolicyConditionField(serializers.RelatedField):
                 operator = None
         except IndexError:
             raise ValidationError(
-                _('Not enough values in condition array: %(condition)s'),
+                _('Empty condition array: %(condition)s'),
                 params={'condition': original_condition_list},
             )
         try:
@@ -99,7 +100,26 @@ class UploadPolicyConditionField(serializers.RelatedField):
         '''
         {"bucket": "name-of-bucket"}
         '''
-        pass
+        from numbers import Number
+        from django.core.exceptions import ValidationError
+        from s3_upload.models import UploadPolicy
+        if len(condition_dict) > 1:
+            raise ValidationError(
+                _('Too many values in condition dictionary: %(condition)s'),
+                params={'condition': condition_dict},
+            )
+        key, value = condition_dict.popitem()
+        if not isinstance(value, basestring) and not isinstance(value, Number):
+            raise ValidationError(
+                _('Values in condition dictionaries should be numbers or strings'),
+            )
+        return UploadPolicy(
+            operator=None,
+            key=key,
+            value=value,
+            value_range=None
+        )
+
 
 class UploadPolicySerializer(serializers.Serializer):
     '''
