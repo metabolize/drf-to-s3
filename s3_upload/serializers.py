@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from django.core.exceptions import ValidationError
 from django.utils.translation import ugettext as _
 
 
@@ -28,7 +29,6 @@ class UploadPolicyConditionField(serializers.RelatedField):
         elif isinstance(data, dict):
             return self.from_native_dict(data)
         else:
-            from django.core.exceptions import ValidationError
             raise ValidationError(
                 _('Condition must be array or dictionary: %(condition)s'),
                 params={'condition': data},
@@ -48,7 +48,6 @@ class UploadPolicyConditionField(serializers.RelatedField):
           - value_range: [1048579, 10485760] or None
         '''
         from numbers import Number
-        from django.core.exceptions import ValidationError
         from s3_upload.models import UploadPolicyCondition
         original_condition_list = condition_list # We use this for error reporting
         condition_list = list(condition_list)
@@ -110,7 +109,6 @@ class UploadPolicyConditionField(serializers.RelatedField):
         {"bucket": "name-of-bucket"}
         '''
         from numbers import Number
-        from django.core.exceptions import ValidationError
         from s3_upload.models import UploadPolicyCondition
         if len(condition_dict) > 1:
             raise ValidationError(
@@ -142,4 +140,118 @@ class BaseUploadPolicySerializer(serializers.Serializer):
         required=False,
         queryset=EmptyQuerySet
     )
+
+    # Subclasses should override these
+    required_conditions = ['bucket']
+    optional_conditions = ['Content-Type']
+
+    # Subclasses must override this
+    #   e.g. allowed_buckets = ['my-app-storage', 'my-app-secondary-storage']
+    # The default will disallow all buckets.
+    allowed_buckets = []
+
+    # Subclasses must override this
+    #   e.g. allowed_buckets = ['public-read']
+    # The default will disallow all ACLs.
+    allowed_acls = []
+
+    def validate_expiration(self, attrs, source):
+        '''
+        I suggest discarding this value entirely, and replacing
+        it with a value on the server instead. Accordingly, this
+        does nothing.
+
+        Subclasses may override, though, and should either return
+        attrs or raise a ValidationError.
+        '''
+        return attrs
+
+    def validate_conditions(self, attrs, source):
+        '''
+        Instead of overriding this method, subclasses should implement
+        methods like these:
+
+            def validate_condition_bucket(self, condition):
+        
+        These methods should raise ValidateionError in case of errors.
+        '''
+        conditions = attrs[source]
+        for item in conditions:
+            if item.key in self.required_conditions + self.optional_conditions:
+                # validate_condition_Content-Type -> validate_condition_Content_Type
+                condition_validate_method_name = "validate_condition_%s" % item.key.replace('-', '_')
+                print condition_validate_method_name
+                condition_validate = getattr(self, condition_validate_method_name, None)
+                if condition_validate:
+                    try:
+                        condition_validate(item)
+                    except ValidationError as err:
+                        self._errors[source + '.' + item.key] = list(err.messages)
+            else:
+                raise ValidationError(
+                    _('Invalid condition key: %(key)s'),
+                    params={'key': item.key},
+                )
+        missing_conditions = set(self.required_conditions) - set([item.key for item in conditions])
+        if missing_conditions:
+            raise ValidationError(
+                _('Missing required conditions: %(keys)s'),
+                params={'keys': list(missing_conditions)},
+            )
+        return attrs
+
+    def validate_condition_bucket(self, condition):
+        if not isinstance(condition.value, basestring):
+            raise ValidationError(
+                _('Bucket should be a string: %(value)s'),
+                params={'value': condition.value},
+            )
+        if condition.value not in self.allowed_buckets:
+            raise ValidationError(
+                _('Bucket not allowed: %(value)s'),
+                params={'value': condition.value},
+            )
+
+    def validate_condition_Content_Type(self, condition):
+        '''
+        Check if this is a valid Media Type according to the RFC.
+        '''
+        import string
+        if not isinstance(condition.value, basestring):
+            raise ValidationError(
+                _('Content-Type should be a string: %(value)s'),
+                params={'value': condition.value},
+            )
+        allowed_characters = frozenset(
+            string.ascii_letters +
+            string.digits +
+            '!' + '#' + '$' + '&' + '.' + '+' + '-' + '^' + '_'
+        )
+        try:
+            first, rest = condition.value.split('/', 1)
+        except ValueError
+        if any([char not in allowed_characters for char in first + rest]):
+            raise ValidationError(
+                _('Content-Type should be a string: %(value)s'),
+                params={'value': condition.value},
+            )
+        if not len(first) or not len(rest):
+            raise ValidationError(
+                _('Invalid Content-Type: %(value)s'),
+                params={'value': condition.value},
+            )            
+
+class FineUploaderPolicySerializer(BaseUploadPolicySerializer):
+    required_conditions = [
+        'acl',
+        'bucket',
+        'key',
+        'x-amz-meta-qqfilename',
+    ]
+    optional_conditions = [
+        'Content-Type',
+        'success_action_status',
+        'success_action_redirect',
+        'content-length-range',
+    ]
 
