@@ -1,0 +1,16 @@
+# Amazon library, required to support deletion
+
+boto>=2.17,<2.17.99
+
+# You already have these
+
+Django>=1.6.0
+djangorestframework>=2.3,<2.3.99
+
+# This is just used for development
+
+wsgiref>=0.1.2
+
+# This is used for generating documentation suitable for pypi
+
+pyandoc
