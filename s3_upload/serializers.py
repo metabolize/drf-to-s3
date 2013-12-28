@@ -296,6 +296,32 @@ class BaseUploadPolicySerializer(serializers.Serializer):
                 _('Invalid character in x-amz-meta-qqfilename'),
             )
 
+    def validate_condition_content_length_range(self, condition):
+        values = condition.value is not None and [condition.value] or condition.value_range
+        num_values = []
+        for value in values:
+            if isinstance(value, basestring):
+                if not unicode(value).isnumeric():
+                    raise ValidationError(
+                        _('Invalid value for content_length_range'),
+                    )
+                num_values.append(int(value))
+            elif isinstance(value, int):
+                num_values.append(value)
+            else:
+                raise ValidationError(
+                    _('Invalid value for content_length_range'),
+                )
+        for value in num_values:
+            if value < 0:
+                raise ValidationError(
+                    _('content_length_range should be nonnegative'),
+                )                
+        if len(num_values) == 2 and num_values[0] > num_values[1]:
+            raise ValidationError(
+                _('content_length_range should be ordered ascending'),
+            )
+
 class FineUploaderPolicySerializer(BaseUploadPolicySerializer):
     required_conditions = [
         'acl',
@@ -320,5 +346,7 @@ class LimitKeyToUrlCharactersMixin(object):
                 _('Invalid character in key'),
             )
 
+
 class MyFineUploaderPolicySerializer(LimitKeyToUrlCharactersMixin, FineUploaderPolicySerializer):
     pass
+

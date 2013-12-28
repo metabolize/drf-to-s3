@@ -453,6 +453,29 @@ class FineUploaderPolicySerializerTest(unittest.TestCase):
         expected = ['Required condition is missing']
         self.assertEquals(serializer.errors['conditions.key'], expected)
 
+    def test_that_serialize_with_reversed_content_length_fails(self):
+        json_data = '''
+        {
+            "expiration": "2007-12-01T12:00:00.000Z",
+            "conditions": [
+                {"acl": "public-read"},
+                {"bucket": "my-bucket"},
+                {"Content-Type": "image/jpeg"},
+                {"success_action_status": 200},
+                {"success_action_redirect": "http://example.com/foo/bar"},
+                {"key": "/foo/bar/baz.jpg"},
+                {"x-amz-meta-qqfilename": "/foo/bar/baz.jpg"},
+                ["content-length-range", 10240, 1024]
+            ]
+        }
+        '''
+        data = json.loads(json_data)
+        serializer = FineUploaderPolicySerializer(data=data)
+        serializer.allowed_buckets = ['my-bucket']
+        serializer.allowed_acls = ['public-read']
+        expected = ['content_length_range should be ordered ascending']
+        self.assertEquals(serializer.errors['conditions.content-length-range'], expected)
+
 class MyFineUploaderPolicySerializerTest(unittest.TestCase):
 
     def test_serialize_is_valid(self):
