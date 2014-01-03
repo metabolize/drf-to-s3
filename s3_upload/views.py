@@ -1,7 +1,7 @@
 from django.utils.translation import ugettext as _
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, renderer_classes
 from rest_framework.parsers import JSONParser
-from rest_framework.renderers import JSONRenderer
+from rest_framework.renderers import JSONRenderer, StaticHTMLRenderer
 from rest_framework.views import APIView
 
 
@@ -66,6 +66,12 @@ class FineUploaderSignUploadPolicyView(APIView):
         return Response(response)
 
 
+@api_view(('GET',))
+@renderer_classes((StaticHTMLRenderer,))
 def empty_html(request):
-    from django.http import HttpResponse
-    return HttpResponse('', content_type='text/html')
+    from rest_framework.response import Response
+    return Response('')
+
+# def empty_html(request):
+#     from django.http import HttpResponse
+#     return HttpResponse('', content_type='text/html')
