@@ -236,7 +236,6 @@ class BaseUploadPolicySerializerTest(unittest.TestCase):
         serializer.optional_conditions = ['foo']
         self.assertTrue(serializer.is_valid())
 
-    @unittest.expectedFailure # Need to figure out why
     def test_that_serializer_invokes_validate_expiration(self):
         json_data = '''
         {
@@ -249,9 +248,9 @@ class BaseUploadPolicySerializerTest(unittest.TestCase):
         data = json.loads(json_data)
         serializer = BaseUploadPolicySerializer(data=data)
         serializer.validate_expiration = mock.MagicMock()
+        serializer.is_valid()
         self.assertTrue(serializer.validate_expiration.called)
 
-    @unittest.expectedFailure # Need to figure out why
     def test_that_serializer_invokes_validate_condition_methods(self):
         json_data = '''
         {
@@ -267,6 +266,7 @@ class BaseUploadPolicySerializerTest(unittest.TestCase):
         serializer.optional_conditions = ['foo']
         serializer.validate_condition_bucket = mock.MagicMock()
         serializer.validate_condition_foo = mock.MagicMock()
+        serializer.is_valid()
         self.assertTrue(serializer.validate_condition_bucket.called)
         self.assertTrue(serializer.validate_condition_foo.called)
 
