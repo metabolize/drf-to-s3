@@ -5,10 +5,10 @@ from rest_framework import status
 from rest_framework.test import APITestCase
 
 class FineUploaderPolicySerializerTest(APITestCase):
-    from s3_upload.views import FineUploaderSignUploadPolicyView
+    from drf_to_s3.views import FineUploaderSignUploadPolicyView
 
     class MyView(FineUploaderSignUploadPolicyView):
-        from s3_upload.serializers import FineUploaderPolicySerializer
+        from drf_to_s3.serializers import FineUploaderPolicySerializer
         class MySerializer(FineUploaderPolicySerializer):
             allowed_buckets = ['my-bucket']
 
@@ -69,13 +69,13 @@ class FineUploaderSettingsTest(APITestCase):
 
     @override_settings(AWS_UPLOAD_SECRET_ACCESS_KEY='1451')
     def test_that_secret_key_pulls_from_settings(self):
-        from s3_upload.views import FineUploaderSignUploadPolicyView
+        from drf_to_s3.views import FineUploaderSignUploadPolicyView
         view = FineUploaderSignUploadPolicyView()
         self.assertEquals(view.aws_secret_access_key, '1451')
 
 
 class TestEmptyHTMLView(APITestCase):
-    from s3_upload.views import empty_html
+    from drf_to_s3.views import empty_html
 
     urls = patterns('',
         url(r'^s3/empty_html/$', empty_html),
@@ -90,7 +90,7 @@ class TestEmptyHTMLView(APITestCase):
 
 
 class TestUploadNotificationView(APITestCase):
-    from s3_upload.views import FineUploaderUploadNotificationView
+    from drf_to_s3.views import FineUploaderUploadNotificationView
     urls = patterns('',
         url(r'^s3/uploaded/$', FineUploaderUploadNotificationView.as_view()),
     )

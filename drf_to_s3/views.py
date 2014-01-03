@@ -45,7 +45,7 @@ class FineUploaderSignUploadPolicyView(APIView):
     def post(self, request, format=None):
         from rest_framework import status
         from rest_framework.response import Response
-        from s3_upload.utils import sign_policy_document
+        from drf_to_s3.utils import sign_policy_document
 
         request_serializer = self.get_serializer_class()(data=request.DATA)
         if not request_serializer.is_valid():
@@ -128,7 +128,7 @@ class FineUploaderUploadNotificationView(APIView):
     def post(self, request, format=None):
         from rest_framework import status
         from rest_framework.response import Response
-        from s3_upload.serializers import FineUploadNotificationSerializer
+        from drf_to_s3.serializers import FineUploadNotificationSerializer
         serializer = FineUploadNotificationSerializer(data=request.DATA)
         if not serializer.is_valid():
             response = {

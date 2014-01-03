@@ -12,7 +12,7 @@ import sys
 
 # fix sys path so we don't need to setup PYTHONPATH
 sys.path.append(os.path.join(os.path.dirname(__file__), "../.."))
-os.environ['DJANGO_SETTINGS_MODULE'] = 's3_upload.runtests.settings'
+os.environ['DJANGO_SETTINGS_MODULE'] = 'drf_to_s3.runtests.settings'
 
 import django
 from django.conf import settings
@@ -40,7 +40,7 @@ def main():
     else:
         print(usage())
         sys.exit(1)
-    test_module_name = 's3_upload.tests'
+    test_module_name = 'drf_to_s3.tests'
     if django.VERSION[0] == 1 and django.VERSION[1] < 6:
         test_module_name = 'tests'
 

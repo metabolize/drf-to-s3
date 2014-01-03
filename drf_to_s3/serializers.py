@@ -69,7 +69,7 @@ class UploadPolicyConditionField(serializers.RelatedField):
           - value_range: [1048579, 10485760] or None
         '''
         from numbers import Number
-        from s3_upload.models import UploadPolicyCondition
+        from drf_to_s3.models import UploadPolicyCondition
         original_condition_list = condition_list # We use this for error reporting
         condition_list = list(condition_list)
         for item in condition_list:
@@ -130,7 +130,7 @@ class UploadPolicyConditionField(serializers.RelatedField):
         {"bucket": "name-of-bucket"}
         '''
         from numbers import Number
-        from s3_upload.models import UploadPolicyCondition
+        from drf_to_s3.models import UploadPolicyCondition
         if len(condition_dict) > 1:
             raise ValidationError(
                 _('Too many values in condition dictionary: %(condition)s'),
@@ -227,7 +227,7 @@ class BaseUploadPolicySerializer(serializers.Serializer):
     allowed_success_action_redirect_values = []
 
     def restore_object(self, attrs, instance=None):
-        from s3_upload.models import UploadPolicy
+        from drf_to_s3.models import UploadPolicy
         return UploadPolicy(**attrs)
 
     def validate_expiration(self, attrs, source):

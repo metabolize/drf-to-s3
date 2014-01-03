@@ -1,5 +1,5 @@
 from django.conf.urls import patterns, url
-from s3_upload import views
+from drf_to_s3 import views
 
 urlpatterns = patterns('',
     url(r'^sign/$', views.FineUploaderSignUploadPolicyView.as_view()),
