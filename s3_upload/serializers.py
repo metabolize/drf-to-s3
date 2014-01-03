@@ -5,14 +5,17 @@ from django.utils.translation import ugettext as _
 
 class UploadPolicyConditionField(serializers.RelatedField):
     '''
-    The serializer field is responsible for deserializing
-    from arrays and dictionaries to UploadPolicyCondition
-    objects, and vice versa.
+    Serializes an UploadPolicyCondition instance to a list
+    or dictionary, and vice versa.
 
-    Though this raises ValidationError for malformed arrays
-    and dictionaries, it only validates the structure of
-    the representation, not its content. Content is
-    validated by the BaseUploadPolicySerializer subclass.
+    It doesn't know about the schema, only about the array
+    and dictionary representations. Accordingly, it raises
+    ValidationError for malformed arrays and dictionaries,
+    but BaseUploadPolicySerializer is responsible for
+    checking that, for example, that values for
+    content-length-range are numeric, that element names
+    are in the schema, and that required elements like
+    'bucket' are present.
 
     A condition is in one of three formats:
       - ["content-length-range", 1048579, 10485760]
@@ -25,16 +28,16 @@ class UploadPolicyConditionField(serializers.RelatedField):
 
     def from_native(self, data):
         if isinstance(data, list):
-            return self.from_native_list(data)
+            return self._from_native_list(data)
         elif isinstance(data, dict):
-            return self.from_native_dict(data)
+            return self._from_native_dict(data)
         else:
             raise ValidationError(
                 _('Condition must be array or dictionary: %(condition)s'),
                 params={'condition': data},
             )
 
-    def from_native_list(self, condition_list):
+    def _from_native_list(self, condition_list):
         '''
         These arrive in one of three formats:
           - ["content-length-range", 1048579, 10485760]
@@ -104,7 +107,7 @@ class UploadPolicyConditionField(serializers.RelatedField):
             value_range=value_range
         )
 
-    def from_native_dict(self, condition_dict):
+    def _from_native_dict(self, condition_dict):
         '''
         {"bucket": "name-of-bucket"}
         '''
@@ -130,7 +133,51 @@ class UploadPolicyConditionField(serializers.RelatedField):
 
 class BaseUploadPolicySerializer(serializers.Serializer):
     '''
-    http://docs.aws.amazon.com/AmazonS3/latest/dev/HTTPPOSTForms.html#HTTPPOSTConstructPolicy
+    Serializes an UploadPolicy instance to a dictionary, and
+    vice versa.
+
+    This class aims to do two things:
+
+     1. Provide configurable validation of essentials like
+        bucket and acl
+     2. Provide stupid validation of variable types, that
+        key and content-type are valid, and so on
+
+    DefaultUploadPolicySerializer provides some more
+    conservative defaults.
+
+    Set a few values to control the validation:
+
+    required_conditions: A list of required elements. Missing
+      one these conditions will raise a ValidationError.
+    optional_conditions: A list of optional elements. Conditions
+      which are not in required_conditions or optional_conditions
+      will raise a ValidationError. Default is all the keys in
+      the schema. Note that condition names are case sensitive at
+      the moment.
+    allowed_buckets: A list of allowed S3 buckets. Subclasses must
+      override, as the default is [].
+    allowed_acls: A list of allowed S3 canned ACLs to set on the
+      uploaded file. The default is ['private']
+    allowed_success_action_redirect_values: A list of values which
+      may be provided for success_action_redirect.
+
+    e.g.
+
+    allowed_buckets = ['my-app-storage', 'my-app-secondary-storage']
+    allowed_success_action_redirect_values = ['/s3/success_redirect']
+
+    To provide custom validation of an individual element, a
+    subclass may implement
+
+       def validate_condition_<name>(self, condition):
+
+    which this method automatically will call whenever a condition
+    is present with the given element name. Raise a ValidationError
+    to indicate an error. Note this method is only called when
+    a condition is present. To make the condition required, add
+    it to required_conditions.
+
     '''
     from django.db.models.query import EmptyQuerySet
     expiration = serializers.DateTimeField(required=False)
@@ -141,23 +188,24 @@ class BaseUploadPolicySerializer(serializers.Serializer):
         queryset=EmptyQuerySet
     )
 
-    # Subclasses should override these
-    required_conditions = ['bucket']
-    optional_conditions = ['Content-Type', 'success_action_status']
-
-    # Subclasses must override this
-    #   e.g. allowed_buckets = ['my-app-storage', 'my-app-secondary-storage']
-    # The default will disallow all buckets.
+    required_conditions = [
+        'bucket',
+        'key',
+    ]
+    optional_conditions = [
+        'content-length-range',
+        'Cache-Control',
+        'Content-Type',
+        'Content-Disposition',
+        'Content-Encoding',
+        'Expires',
+        'redirect',
+        'success_action_redirect',
+        'success_action_status',
+        'x-amz-security-token',
+    ]
     allowed_buckets = []
-
-    # Subclasses must override this
-    #   e.g. allowed_acls = ['public-read']
-    # The default will disallow all ACLs.
-    allowed_acls = []
-
-    # Subclasses should override this
-    #   e.g. allowed_success_action_redirect_values = ['/s3/success_redirect']
-    # The default will disallow all values for success_action_redirect.
+    allowed_acls = ['private']
     allowed_success_action_redirect_values = []
 
     def validate_expiration(self, attrs, source):
@@ -173,12 +221,10 @@ class BaseUploadPolicySerializer(serializers.Serializer):
 
     def validate_conditions(self, attrs, source):
         '''
-        Instead of overriding this method, subclasses should implement
-        methods like these:
-
-            def validate_condition_bucket(self, condition):
-        
-        These methods should raise ValidateionError in case of errors.
+        1. Make sure conditions are in required_conditions or optional_conditions
+        2. Use introspection to validate individual conditions which are
+           present
+        3. Require that required_conditions are present
         '''
         conditions = attrs[source]
         for item in conditions:
@@ -205,21 +251,18 @@ class BaseUploadPolicySerializer(serializers.Serializer):
         return attrs
 
     def validate_condition_acl(self, condition):
-        if not isinstance(condition.value, basestring):
-            raise ValidationError(
-                _('ACL should be a string'),
-            )
+        '''
+        Require that acl is in the list of allowed_acls.
+        '''
         if condition.value not in self.allowed_acls:
             raise ValidationError(
                 _('ACL not allowed'),
             )
 
     def validate_condition_bucket(self, condition):
-        if not isinstance(condition.value, basestring):
-            raise ValidationError(
-                _('Bucket should be a string: %(value)s'),
-                params={'value': condition.value},
-            )
+        '''
+        Require that bucket is in the list of allowed_buckets.
+        '''
         if condition.value not in self.allowed_buckets:
             raise ValidationError(
                 _('Bucket not allowed'),
@@ -227,7 +270,7 @@ class BaseUploadPolicySerializer(serializers.Serializer):
 
     def validate_condition_Content_Type(self, condition):
         '''
-        Check if this is a valid Media Type according to the RFC.
+        Require a valid Media Type according to the RFC.
         '''
         import string
         if not isinstance(condition.value, basestring):
@@ -252,6 +295,9 @@ class BaseUploadPolicySerializer(serializers.Serializer):
             )
 
     def validate_condition_success_action_status(self, condition):
+        '''
+        Require that success_action_status is numeric and reasonable.
+        '''
         if condition.value is None:
             return
         elif isinstance(condition.value, basestring):
@@ -272,6 +318,10 @@ class BaseUploadPolicySerializer(serializers.Serializer):
             )
 
     def validate_success_action_redirect(self, condition):
+        '''
+        Require that validate_success_action_redirect is None or in
+        the allowed list.
+        '''
         if condition.value is None:
             return
         elif not condition.value in self.allowed_success_action_redirect_values:
@@ -280,18 +330,42 @@ class BaseUploadPolicySerializer(serializers.Serializer):
             )
 
     def validate_condition_key(self, condition):
+        '''
+        Require that key is a string and not too long.
+
+        Perhaps absurdly, S3 allows keys to be any unicode character.
+        That includes unprintable characters and direction-changing
+        characters, which sounds like trouble. Use
+        LimitKeyToUrlCharactersMixin to provide saner validation of
+        this value.
+        '''
         if not isinstance(condition.value, basestring):
             raise ValidationError(
-                _('Invalid key'),
+                _('Key should be a string'),
             )
         elif len(condition.value.decode('utf-8')) > 1024:
             raise ValidationError(
                 _('Key too long'),
             )
 
-    def validate_condition_x_amz_meta_qqfilename(self, condition):
+    @classmethod
+    def string_contains_only_url_characters(cls, string_value):
+        '''
+        Raise an exception if string_value contains non-URL characters.
+        '''
         valid_characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~:/?#[]@!$&'()*+,;="
-        if any([char not in valid_characters for char in condition.value]):
+        return all([char in valid_characters for char in string_value])
+
+    def validate_condition_x_amz_meta_qqfilename(self, condition):
+        '''
+        Require that x-amz-meta-qqfilename is a string containing
+        only URL characters.
+        '''
+        if not isinstance(condition.value, basestring):
+            raise ValidationError(
+                _('x-amz-meta-qqfilename should be a string'),
+            )
+        if not self.string_contains_only_url_characters(condition.value):
             raise ValidationError(
                 _('Invalid character in x-amz-meta-qqfilename'),
             )
@@ -322,7 +396,39 @@ class BaseUploadPolicySerializer(serializers.Serializer):
                 _('content_length_range should be ordered ascending'),
             )
 
-class FineUploaderPolicySerializer(BaseUploadPolicySerializer):
+
+class LimitKeyToUrlCharactersMixin(object):
+    def validate_condition_key(self, condition):
+        '''
+        Require that the key is a valid URL character.
+
+        Without this, the serializer will accept any unicode character
+        in the key.
+        '''
+        super(LimitKeyToUrlCharactersMixin, self).validate_condition_key(condition)
+        if not self.string_contains_only_url_characters(condition.value):
+            raise ValidationError(
+                _('Invalid character in key'),
+            )
+
+class DefaultUploadPolicySerializer(LimitKeyToUrlCharactersMixin, BaseUploadPolicySerializer):
+    '''
+    Subclass this one.
+
+     - Be sure to set the `allowed_buckets`.
+     - Override `optional_conditions` to further limit them, if you like.
+    '''
+    pass
+
+class FineUploaderPolicySerializer(DefaultUploadPolicySerializer):
+    '''
+    To be more paranoid, subclass this one. It's tailored to the
+    annotated policy document given by Fine Uploader. It requires
+    all the keys Fine Uploader always includes, and allows the
+    keys which sometimes are included.
+
+    http://blog.fineuploader.com/2013/08/16/fine-uploader-s3-upload-directly-to-amazon-s3-from-your-browser/#sign-policy
+    '''
     required_conditions = [
         'acl',
         'bucket',
@@ -335,18 +441,3 @@ class FineUploaderPolicySerializer(BaseUploadPolicySerializer):
         'success_action_redirect',
         'content-length-range',
     ]
-
-
-class LimitKeyToUrlCharactersMixin(object):
-    def validate_condition_key(self, condition):
-        super(LimitKeyToUrlCharactersMixin, self).validate_condition_key(condition)
-        valid_characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~:/?#[]@!$&'()*+,;="
-        if any([char not in valid_characters for char in condition.value]):
-            raise ValidationError(
-                _('Invalid character in key'),
-            )
-
-
-class MyFineUploaderPolicySerializer(LimitKeyToUrlCharactersMixin, FineUploaderPolicySerializer):
-    pass
-

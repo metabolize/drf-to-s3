@@ -2,7 +2,7 @@ import datetime, json, mock, unittest
 from django.core.exceptions import ValidationError
 from rest_framework.parsers import JSONParser
 from s3_upload.models import UploadPolicy, UploadPolicyCondition
-from s3_upload.serializers import UploadPolicyConditionField, BaseUploadPolicySerializer, FineUploaderPolicySerializer, MyFineUploaderPolicySerializer
+from s3_upload.serializers import UploadPolicyConditionField, BaseUploadPolicySerializer, FineUploaderPolicySerializer
 
 
 class UploadPolicyConditionFieldTest(unittest.TestCase):
@@ -126,12 +126,13 @@ class UploadPolicyConditionFieldTest(unittest.TestCase):
 
 class BaseUploadPolicySerializerTest(unittest.TestCase):
 
-    def test_that_serialize_with_bucket_succeeds(self):
+    def test_that_serialize_with_bucket_and_key_succeeds(self):
         json_data = '''
         {
             "expiration": "2007-12-01T12:00:00.000Z",
             "conditions": [
-                {"bucket": "johnsmith" }
+                {"bucket": "johnsmith" },
+                {"key": "/foo/bar/baz" }
             ]
         }
         '''
@@ -188,7 +189,6 @@ class BaseUploadPolicySerializerTest(unittest.TestCase):
         {
             "expiration": "2007-12-01T12:00:00.000Z",
             "conditions": [
-                {"bucket": "johnsmith" },
                 {"foo": "bar" }
             ]
         }
@@ -196,6 +196,7 @@ class BaseUploadPolicySerializerTest(unittest.TestCase):
         data = json.loads(json_data)
         serializer = BaseUploadPolicySerializer(data=data)
         serializer.allowed_buckets = ['johnsmith']
+        serializer.required_conditions = []
         serializer.optional_conditions = ['foo']
         self.assertTrue(serializer.is_valid())
 
@@ -239,12 +240,13 @@ class BaseUploadPolicySerializerTest(unittest.TestCase):
     # FIXME Test that when there's a missing key and a condition validation
     # error, both are returned
 
-    def test_that_after_configuration_serialize_with_valid_bucket_succeeds(self):
+    def test_that_after_configuration_serialize_with_valid_bucket_and_key_succeeds(self):
         json_data = '''
         {
             "expiration": "2007-12-01T12:00:00.000Z",
             "conditions": [
-                {"bucket": "johnsmith"}
+                {"bucket": "johnsmith"},
+                {"key": "/foo/bar/baz"}
             ]
         }
         '''
@@ -385,7 +387,7 @@ class BaseUploadPolicySerializerTest(unittest.TestCase):
         serializer = BaseUploadPolicySerializer(data=data)
         serializer.required_conditions = []
         serializer.optional_conditions = ['key']
-        expected = ['Invalid key']
+        expected = ['Key should be a string']
         self.assertEquals(serializer.errors['conditions.key'], expected)
 
     def test_that_serialize_with_invalid_filename_fails(self):
@@ -476,7 +478,7 @@ class FineUploaderPolicySerializerTest(unittest.TestCase):
         expected = ['content_length_range should be ordered ascending']
         self.assertEquals(serializer.errors['conditions.content-length-range'], expected)
 
-class MyFineUploaderPolicySerializerTest(unittest.TestCase):
+class FineUploaderPolicySerializerTest(unittest.TestCase):
 
     def test_serialize_is_valid(self):
         json_data = '''
@@ -495,7 +497,7 @@ class MyFineUploaderPolicySerializerTest(unittest.TestCase):
         }
         '''
         data = json.loads(json_data)
-        serializer = MyFineUploaderPolicySerializer(data=data)
+        serializer = FineUploaderPolicySerializer(data=data)
         serializer.allowed_buckets = ['my-bucket']
         serializer.allowed_acls = ['public-read']
         self.assertTrue(serializer.is_valid())
@@ -520,7 +522,7 @@ class MyFineUploaderPolicySerializerTest(unittest.TestCase):
         }
         '''
         data = json.loads(json_data)
-        serializer = MyFineUploaderPolicySerializer(data=data)
+        serializer = FineUploaderPolicySerializer(data=data)
         serializer.allowed_buckets = ['my-bucket']
         serializer.allowed_acls = ['public-read']
         expected = ['Invalid character in key']
