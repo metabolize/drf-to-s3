@@ -13,3 +13,7 @@ def sign_policy_document(policy_document, secret_key):
         'policy': policy,
         'signature': signature,
     }
+
+def utc_plus(seconds):
+    import datetime
+    return datetime.datetime.utcnow() + datetime.timedelta(0, seconds)

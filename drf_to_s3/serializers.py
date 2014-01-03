@@ -198,7 +198,7 @@ class BaseUploadPolicySerializer(serializers.Serializer):
 
     '''
     from django.db.models.query import EmptyQuerySet
-    expiration = serializers.DateTimeField(required=False, format='iso-8601')
+    expiration = serializers.DateTimeField(required=False, format='%Y-%m-%dT%H:%M:%SZ')
     conditions = UploadPolicyConditionField(
         many=True,
         read_only=False,

@@ -31,9 +31,8 @@ class FineUploaderSignUploadPolicyView(APIView):
         return settings.AWS_UPLOAD_SECRET_ACCESS_KEY
 
     def pre_sign(self, upload_policy):
-        import datetime
-        expiration = datetime.datetime.today() + datetime.timedelta(0, self.expire_after_seconds)
-        upload_policy.expiration = expiration
+        from drf_to_s3.utils import utc_plus
+        upload_policy.expiration = utc_plus(self.expire_after_seconds)
 
     def post(self, request, format=None):
         from rest_framework import status
