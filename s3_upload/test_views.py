@@ -5,7 +5,7 @@ from rest_framework import status
 from rest_framework.test import APITestCase
 from s3_upload import urls as _urls
 from s3_upload.serializers import FineUploaderPolicySerializer
-from s3_upload.views import FineUploaderSignUploadPolicyView
+from s3_upload.views import empty_html, FineUploaderSignUploadPolicyView
 
 
 class FineUploaderPolicySerializerTest(APITestCase):
@@ -73,3 +73,16 @@ class FineUploaderSettingsTest(APITestCase):
     def test_that_secret_key_pulls_from_settings(self):
         view = FineUploaderSignUploadPolicyView()
         self.assertEquals(view.aws_secret_access_key, '1451')
+
+
+class TestEmptyHTMLView(APITestCase):
+
+    urls = patterns('',
+        url(r'^s3/empty_html/$', empty_html),
+    )
+
+    def test_that_secret_key_pulls_from_settings(self):
+        resp = self.client.get('/s3/empty_html/')
+        self.assertEquals(resp.status_code, status.HTTP_200_OK)
+        self.assertEquals(resp['Content-Type'], 'text/html')
+        self.assertEquals(resp.content, '')

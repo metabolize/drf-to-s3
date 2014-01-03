@@ -1,7 +1,9 @@
 from django.utils.translation import ugettext as _
+from rest_framework.decorators import api_view
 from rest_framework.parsers import JSONParser
 from rest_framework.renderers import JSONRenderer
 from rest_framework.views import APIView
+
 
 class FineUploaderSignUploadPolicyView(APIView):
     '''
@@ -62,3 +64,8 @@ class FineUploaderSignUploadPolicyView(APIView):
         response['policy_decoded'] = response_serializer.data
 
         return Response(response)
+
+
+def empty_html(request):
+    from django.http import HttpResponse
+    return HttpResponse('', content_type='text/html')
