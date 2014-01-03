@@ -24,7 +24,25 @@ class UploadPolicyConditionField(serializers.RelatedField):
     http://docs.aws.amazon.com/AmazonS3/latest/dev/HTTPPOSTForms.html#HTTPPOSTConstructPolicy
     '''
     def to_native(self, value):
-        pass
+        if value.value_range is not None:
+            if value.value is not None:
+                raise ValidationError(
+                    _('Do not use value and value_range together')
+                )
+            if value.operator is not None:
+                raise ValidationError(
+                    _('operator should not be used with value_range')
+                )
+            if not isinstance(value.value_range, list):
+                raise ValidationError(
+                    _('value_range should be a list')
+                )
+        if value.value_range:
+            return [value.element_name] + value.value_range
+        elif value.operator:
+            return [value.operator, '$' + value.element_name, value.value]
+        else:
+            return {value.element_name: value.value}
 
     def from_native(self, data):
         if isinstance(data, list):

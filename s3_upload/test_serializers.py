@@ -4,8 +4,50 @@ from rest_framework.parsers import JSONParser
 from s3_upload.models import UploadPolicy, UploadPolicyCondition
 from s3_upload.serializers import UploadPolicyConditionField, BaseUploadPolicySerializer, FineUploaderPolicySerializer
 
+class UploadPolicyConditionFieldSerializationTest(unittest.TestCase):
 
-class UploadPolicyConditionFieldTest(unittest.TestCase):
+    def setUp(self):
+        self.field = UploadPolicyConditionField()
+
+    def test_starts_with(self):
+        cond = UploadPolicyCondition(
+            operator='starts-with',
+            element_name='key',
+            value='user/eric/'
+        )
+        result = self.field.to_native(cond)
+        expected = ['starts-with', '$key', 'user/eric/']
+        self.assertEquals(result, expected)
+
+    def test_eq(self):
+        cond = UploadPolicyCondition(
+            operator='eq',
+            element_name='acl',
+            value='public-read'
+        )
+        result = self.field.to_native(cond)
+        expected = ['eq', '$acl', 'public-read']
+        self.assertEquals(result, expected)
+
+    def test_no_oper(self):
+        cond = UploadPolicyCondition(
+            element_name='acl',
+            value='public-read'
+        )
+        result = self.field.to_native(cond)
+        expected = {'acl': 'public-read'}
+        self.assertEquals(result, expected)
+
+    def test_range(self):
+        cond = UploadPolicyCondition(
+            element_name='content-length-range',
+            value_range=[1048579, 10485760]
+        )
+        result = self.field.to_native(cond)
+        expected = ['content-length-range', 1048579, 10485760]
+        self.assertEquals(result, expected)
+
+class UploadPolicyConditionFieldDeserializationTest(unittest.TestCase):
 
     def setUp(self):
         self.field = UploadPolicyConditionField()      
