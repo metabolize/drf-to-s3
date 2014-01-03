@@ -1,7 +1,6 @@
 from django.utils.translation import ugettext as _
 from rest_framework.decorators import api_view, renderer_classes
-from rest_framework.parsers import JSONParser
-from rest_framework.renderers import JSONRenderer, StaticHTMLRenderer
+from rest_framework.renderers import StaticHTMLRenderer
 from rest_framework.views import APIView
 
 
@@ -17,6 +16,9 @@ class FineUploaderSignUploadPolicyView(APIView):
     expire_after_seconds: Number of seconds before signed policy
       documents should expires. Used by pre_sign.
     '''
+    from rest_framework.parsers import JSONParser
+    from rest_framework.renderers import JSONRenderer
+
     serializer_class = None # Subclasses must override
     expire_after_seconds = 300
     parser_classes = (JSONParser,)
@@ -75,3 +77,58 @@ def empty_html(request):
 # def empty_html(request):
 #     from django.http import HttpResponse
 #     return HttpResponse('', content_type='text/html')
+
+
+class FineUploaderUploadNotificationView(APIView):
+    '''
+    Handle the upload complete notification from the
+    client. You can subclass this and override
+    handle_upload to handle the notification or to
+    return additional information to the client.
+    
+    '''
+    from rest_framework.parsers import FormParser
+    from rest_framework.renderers import JSONRenderer
+
+    parser_classes = (FormParser,)
+    renderer_classes = (JSONRenderer,)
+
+    def handle_upload(self, request, bucket, key, uuid, name):
+        '''
+        Subclasses should override, to provide handling for the
+        successful upload.
+
+        Return a response with status=status.HTTP_200_OK.
+
+        Return a specific error message in the `error` key. Under
+        IE9 and IE8, you must return a 200 status with `error`
+        set, or else Fine Uploader can only display a generic
+        error message.
+
+        Any other content you provide in the response is passed to the
+        `complete` handler on the client.
+        http://docs.fineuploader.com/api/events.html#complete
+
+        request: The Django request
+        bucket: S3 bucket
+        key: Key name of the associated file in S3
+        uuid: UUID of the file
+        name: Name of the file
+
+        '''
+        from rest_framework import status
+        return Response(status=status.HTTP_200_OK)
+
+    def post(self, request, format=None):
+        from rest_framework import status
+        from s3_upload.serializers import FineUploadNotificationSerializer
+        serializer = FineUploadNotificationSerializer(data=request.DATA)
+        if not serializer.is_valid():
+            response = {
+                'error': 'Malformed upload notification request',
+                'errors': serializer.errors,
+            }
+            # Return 200 for better presentation of errors under IE9 and IE8
+            # http://blog.fineuploader.com/2013/08/16/fine-uploader-s3-upload-directly-to-amazon-s3-from-your-browser/#success-endpoint
+            return Response(response, status=status.HTTP_200_OK)
+        return self.handle_upload(request, **serializer.object)

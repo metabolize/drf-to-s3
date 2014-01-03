@@ -468,3 +468,10 @@ class FineUploaderPolicySerializer(DefaultUploadPolicySerializer):
         'success_action_redirect',
         'content-length-range',
     ]
+
+
+class FineUploadNotificationSerializer(serializers.Serializer):
+    key = serializers.CharField()
+    uuid = serializers.CharField()
+    name = serializers.CharField()
+    bucket = serializers.CharField()
