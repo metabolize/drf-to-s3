@@ -17,6 +17,16 @@ This service has a few essential responsibilities:
 See this [Fine Uploader blog post][] for a long explanation of
 these responsibilities.
 
+Development
+-----------
+
+Running Tests:
+
+    virtualenv venv
+    source venv/bin/activate
+    pip install -r requirements.txt
+    s3_upload/runtests/runtests.py
+
 [Django REST Framework]: http://django-rest-framework.org/
 [Fine Uploader]: http://fineuploader.com/
 [POST API]: http://docs.aws.amazon.com/AmazonS3/latest/dev/HTTPPOSTForms.html
