@@ -1,8 +1,8 @@
 import datetime, json, mock, unittest
 from django.core.exceptions import ValidationError
 from rest_framework.parsers import JSONParser
-from s3_upload.models import UploadPolicy, UploadPolicyCondition
-from s3_upload.serializers import UploadPolicyConditionField, BaseUploadPolicySerializer, FineUploaderPolicySerializer
+from drf_to_s3.models import UploadPolicy, UploadPolicyCondition
+from drf_to_s3.serializers import UploadPolicyConditionField, BaseUploadPolicySerializer, FineUploaderPolicySerializer
 
 class UploadPolicyConditionFieldSerializationTest(unittest.TestCase):
 
