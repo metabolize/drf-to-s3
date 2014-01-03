@@ -85,7 +85,7 @@ class FineUploaderUploadNotificationView(APIView):
     client. You can subclass this and override
     handle_upload to handle the notification or to
     return additional information to the client.
-    
+
     '''
     from rest_framework.parsers import FormParser
     from rest_framework.renderers import JSONRenderer
@@ -100,13 +100,13 @@ class FineUploaderUploadNotificationView(APIView):
 
         Return a response with status=status.HTTP_200_OK.
 
-        Return a specific error message in the `error` key. Under
-        IE9 and IE8, you must return a 200 status with `error`
-        set, or else Fine Uploader can only display a generic
-        error message.
+        Return a specific error message in the `error` key.
+        Under IE9 and IE8, you must return a 200 status with
+        `error` set, or else Fine Uploader can only display
+        a generic error message.
 
-        Any other content you provide in the response is passed to the
-        `complete` handler on the client.
+        Any other content you provide in the response is passed
+        to the `complete` handler on the client.
         http://docs.fineuploader.com/api/events.html#complete
 
         request: The Django request
@@ -115,12 +115,19 @@ class FineUploaderUploadNotificationView(APIView):
         uuid: UUID of the file
         name: Name of the file
 
+        Depending what you do with the uploaded file, you may
+        need to validate that the request originated by this
+        user, to prevent a malicious user from using this
+        callback to hijack someone else's upload.
+
         '''
         from rest_framework import status
+        from rest_framework.response import Response
         return Response(status=status.HTTP_200_OK)
 
     def post(self, request, format=None):
         from rest_framework import status
+        from rest_framework.response import Response
         from s3_upload.serializers import FineUploadNotificationSerializer
         serializer = FineUploadNotificationSerializer(data=request.DATA)
         if not serializer.is_valid():

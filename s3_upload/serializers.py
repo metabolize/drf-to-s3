@@ -471,7 +471,7 @@ class FineUploaderPolicySerializer(DefaultUploadPolicySerializer):
 
 
 class FineUploadNotificationSerializer(serializers.Serializer):
+    bucket = serializers.CharField()
     key = serializers.CharField()
     uuid = serializers.CharField()
     name = serializers.CharField()
-    bucket = serializers.CharField()

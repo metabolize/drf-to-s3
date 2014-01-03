@@ -3,14 +3,12 @@ from django.conf.urls import patterns, url
 from django.test.utils import override_settings
 from rest_framework import status
 from rest_framework.test import APITestCase
-from s3_upload import urls as _urls
-from s3_upload.serializers import FineUploaderPolicySerializer
-from s3_upload.views import empty_html, FineUploaderSignUploadPolicyView
-
 
 class FineUploaderPolicySerializerTest(APITestCase):
+    from s3_upload.views import FineUploaderSignUploadPolicyView
 
     class MyView(FineUploaderSignUploadPolicyView):
+        from s3_upload.serializers import FineUploaderPolicySerializer
         class MySerializer(FineUploaderPolicySerializer):
             allowed_buckets = ['my-bucket']
 
@@ -71,11 +69,13 @@ class FineUploaderSettingsTest(APITestCase):
 
     @override_settings(AWS_UPLOAD_SECRET_ACCESS_KEY='1451')
     def test_that_secret_key_pulls_from_settings(self):
+        from s3_upload.views import FineUploaderSignUploadPolicyView
         view = FineUploaderSignUploadPolicyView()
         self.assertEquals(view.aws_secret_access_key, '1451')
 
 
 class TestEmptyHTMLView(APITestCase):
+    from s3_upload.views import empty_html
 
     urls = patterns('',
         url(r'^s3/empty_html/$', empty_html),
@@ -87,3 +87,21 @@ class TestEmptyHTMLView(APITestCase):
         # Doesn't seem to set this on empty content; does that matter?
         # self.assertEquals(resp['Content-Type'], 'text/html')
         self.assertEquals(resp.content, '')
+
+
+class TestUploadNotificationView(APITestCase):
+    from s3_upload.views import FineUploaderUploadNotificationView
+    urls = patterns('',
+        url(r'^s3/uploaded/$', FineUploaderUploadNotificationView.as_view()),
+    )
+
+    def test_that_upload_notification_returns_success(self):
+        notification = {
+            'bucket': 'my-bucket',
+            'key': '/foo/bar/baz',
+            'uuid': '12345',
+            'name': 'baz',
+        }
+        resp = self.client.post('/s3/uploaded/', notification)
+        self.assertEquals(resp.status_code, status.HTTP_200_OK)
+        self.assertEquals(len(resp.content), 0)
