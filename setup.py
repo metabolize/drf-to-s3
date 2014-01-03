@@ -15,7 +15,7 @@ setup(
     author = 'Body Labs',
     author_email = 'paul.melnikow@bodylabs.com',
     description = 'Django REST Framework Interface for direct upload to S3',
-    long_description = long_description
+    long_description = long_description,
     url = 'https://bitbucket.org/bodylabs/drf-to-s3',
     license = 'All rights reserved',
     packages = [
