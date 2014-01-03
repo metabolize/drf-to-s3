@@ -51,8 +51,8 @@ class UploadPolicyConditionField(serializers.RelatedField):
             return self._from_native_dict(data)
         else:
             raise ValidationError(
-                _('Condition must be array or dictionary: %(condition)s'),
-                params={'condition': data},
+                _('Condition must be array or dictionary, not %(type)s: %(condition)s'),
+                params={'type': data.__class__.__name__, 'condition': data},
             )
 
     def _from_native_list(self, condition_list):
@@ -198,7 +198,7 @@ class BaseUploadPolicySerializer(serializers.Serializer):
 
     '''
     from django.db.models.query import EmptyQuerySet
-    expiration = serializers.DateTimeField(required=False)
+    expiration = serializers.DateTimeField(required=False, format='iso-8601')
     conditions = UploadPolicyConditionField(
         many=True,
         read_only=False,
@@ -225,6 +225,10 @@ class BaseUploadPolicySerializer(serializers.Serializer):
     allowed_buckets = []
     allowed_acls = ['private']
     allowed_success_action_redirect_values = []
+
+    def restore_object(self, attrs, instance=None):
+        from s3_upload.models import UploadPolicy
+        return UploadPolicy(**attrs)
 
     def validate_expiration(self, attrs, source):
         '''
@@ -429,7 +433,11 @@ class LimitKeyToUrlCharactersMixin(object):
                 _('Invalid character in key'),
             )
 
-class DefaultUploadPolicySerializer(LimitKeyToUrlCharactersMixin, BaseUploadPolicySerializer):
+
+class DefaultUploadPolicySerializer(
+    LimitKeyToUrlCharactersMixin,
+    BaseUploadPolicySerializer
+):
     '''
     Subclass this one.
 
@@ -437,6 +445,7 @@ class DefaultUploadPolicySerializer(LimitKeyToUrlCharactersMixin, BaseUploadPoli
      - Override `optional_conditions` to further limit them, if you like.
     '''
     pass
+
 
 class FineUploaderPolicySerializer(DefaultUploadPolicySerializer):
     '''
