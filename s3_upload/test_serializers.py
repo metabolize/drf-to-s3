@@ -15,7 +15,7 @@ class UploadPolicyConditionFieldTest(unittest.TestCase):
         result = self.field.from_native(json.loads(json_data))
         self.assertIsInstance(result, UploadPolicyCondition)
         self.assertEquals(result.operator, 'starts-with')
-        self.assertEquals(result.key, 'key'),
+        self.assertEquals(result.element_name, 'key'),
         self.assertEquals(result.value, 'user/eric/')
         self.assertIsNone(result.value_range)
 
@@ -24,7 +24,7 @@ class UploadPolicyConditionFieldTest(unittest.TestCase):
         result = self.field.from_native(json.loads(json_data))
         self.assertIsInstance(result, UploadPolicyCondition)
         self.assertEquals(result.operator, 'eq')
-        self.assertEquals(result.key, 'acl'),
+        self.assertEquals(result.element_name, 'acl'),
         self.assertEquals(result.value, 'public-read')
         self.assertIsNone(result.value_range)
 
@@ -33,7 +33,7 @@ class UploadPolicyConditionFieldTest(unittest.TestCase):
         result = self.field.from_native(json.loads(json_data))
         self.assertIsInstance(result, UploadPolicyCondition)
         self.assertIsNone(result.operator)
-        self.assertEquals(result.key, 'content-length-range'),
+        self.assertEquals(result.element_name, 'content-length-range'),
         self.assertIsNone(result.value)
         self.assertEquals(result.value_range, [1048579, 10485760])
 
@@ -60,7 +60,7 @@ class UploadPolicyConditionFieldTest(unittest.TestCase):
         with self.assertRaises(ValidationError) as ctx:
             self.field.from_native(data)
         exception = ctx.exception
-        self.assertTrue(exception.message.startswith('Missing key in condition array'))
+        self.assertTrue(exception.message.startswith('Missing element in condition array'))
         self.assertEquals(exception.params['condition'], data)
 
     def test_missing_dollar(self):
@@ -69,8 +69,8 @@ class UploadPolicyConditionFieldTest(unittest.TestCase):
         with self.assertRaises(ValidationError) as ctx:
             self.field.from_native(data)
         exception = ctx.exception
-        self.assertTrue(exception.message.startswith('Key in condition array should start with $'))
-        self.assertEquals(exception.params['key'], 'key')
+        self.assertTrue(exception.message.startswith('Element name in condition array should start with $'))
+        self.assertEquals(exception.params['element_name'], 'key')
 
     def test_extra_args(self):
         json_data = '["content-length-range", 1, 2, 3, 4, 5]'
@@ -86,7 +86,7 @@ class UploadPolicyConditionFieldTest(unittest.TestCase):
         result = self.field.from_native(json.loads(json_data))
         self.assertIsInstance(result, UploadPolicyCondition)
         self.assertIsNone(result.operator)
-        self.assertEquals(result.key, 'acl')
+        self.assertEquals(result.element_name, 'acl')
         self.assertEquals(result.value, 'public-read')
         self.assertIsNone(result.value_range)
 
@@ -167,7 +167,7 @@ class BaseUploadPolicySerializerTest(unittest.TestCase):
         data = json.loads(json_data)
         serializer = BaseUploadPolicySerializer(data=data)
         self.assertFalse(serializer.is_valid())
-        expected = ['Invalid condition key: foo']
+        expected = ['Invalid element name: foo']
         self.assertEquals(serializer.errors['conditions'], expected)
 
     def test_that_after_configuration_serialize_without_bucket_succeeds(self):

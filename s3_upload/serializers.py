@@ -43,7 +43,7 @@ class UploadPolicyConditionField(serializers.RelatedField):
 
         Returns an object with these attributes set:
           - operator: 'eq', 'starts-with', or None
-          - key: 'content-length-range', 'key', etc.
+          - element_name: 'content-length-range', 'key', etc.
           - value: "user/eric/", 1024, or None
           - value_range: [1048579, 10485760] or None
         '''
@@ -67,19 +67,19 @@ class UploadPolicyConditionField(serializers.RelatedField):
                 params={'condition': original_condition_list},
             )
         try:
-            key = condition_list.pop(0)
+            element_name = condition_list.pop(0)
         except IndexError:
             raise ValidationError(
-                _('Missing key in condition array: %(condition)s'),
+                _('Missing element in condition array: %(condition)s'),
                 params={'condition': original_condition_list},
             )
         if operator:
-            if key.startswith('$'):
-                key = key[1:]
+            if element_name.startswith('$'):
+                element_name = element_name[1:]
             else:
                 raise ValidationError(
-                    _('Key in condition array should start with $: %(key)s'),
-                    params={'key': key},
+                    _('Element name in condition array should start with $: %(element_name)s'),
+                    params={'element_name': element_name},
                 )
         if len(condition_list) == 0:
             raise ValidationError(
@@ -99,7 +99,7 @@ class UploadPolicyConditionField(serializers.RelatedField):
             )
         return UploadPolicyCondition(
             operator=operator,
-            key=key,
+            element_name=element_name,
             value=value,
             value_range=value_range
         )
@@ -115,14 +115,14 @@ class UploadPolicyConditionField(serializers.RelatedField):
                 _('Too many values in condition dictionary: %(condition)s'),
                 params={'condition': condition_dict},
             )
-        key, value = condition_dict.popitem()
+        element_name, value = condition_dict.popitem()
         if not isinstance(value, basestring) and not isinstance(value, Number):
             raise ValidationError(
                 _('Values in condition dictionaries should be numbers or strings'),
             )
         return UploadPolicyCondition(
             operator=None,
-            key=key,
+            element_name=element_name,
             value=value,
             value_range=None
         )
@@ -182,26 +182,26 @@ class BaseUploadPolicySerializer(serializers.Serializer):
         '''
         conditions = attrs[source]
         for item in conditions:
-            if item.key in self.required_conditions + self.optional_conditions:
+            if item.element_name in self.required_conditions + self.optional_conditions:
                 # validate_condition_Content-Type -> validate_condition_Content_Type
-                condition_validate_method_name = "validate_condition_%s" % item.key.replace('-', '_')
+                condition_validate_method_name = "validate_condition_%s" % item.element_name.replace('-', '_')
                 condition_validate = getattr(self, condition_validate_method_name, None)
                 if condition_validate:
                     try:
                         condition_validate(item)
                     except ValidationError as err:
-                        self._errors[source + '.' + item.key] = list(err.messages)
+                        self._errors[source + '.' + item.element_name] = list(err.messages)
             else:
                 raise ValidationError(
-                    _('Invalid condition key: %(key)s'),
-                    params={'key': item.key},
+                    _('Invalid element name: %(element_name)s'),
+                    params={'element_name': item.element_name},
                 )
-        missing_conditions = set(self.required_conditions) - set([item.key for item in conditions])
-        for key in missing_conditions:
+        missing_conditions = set(self.required_conditions) - set([item.element_name for item in conditions])
+        for element_name in missing_conditions:
             err = ValidationError(
                 _('Required condition is missing'),
             )
-            self._errors[source + '.' + key] = list(err.messages)
+            self._errors[source + '.' + element_name] = list(err.messages)
         return attrs
 
     def validate_condition_acl(self, condition):
