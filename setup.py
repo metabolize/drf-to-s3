@@ -10,8 +10,8 @@ except (IOError, ImportError):
 from setuptools import setup
 
 setup(
-    name = 'drf-to-s3',
-    version = __import__('drf_to_s3').__version__,
+    name = 's3_upload',
+    version = __import__('s3_upload').__version__,
     author = 'Body Labs',
     author_email = 'paul.melnikow@bodylabs.com',
     description = 'Django REST Framework Interface for direct upload to S3',
@@ -19,7 +19,7 @@ setup(
     url = 'https://bitbucket.org/bodylabs/drf-to-s3',
     license = 'All rights reserved',
     packages = [
-        'drf-to-s3',
+        's3_upload',
     ],
     classifiers = [
         'Development Status :: 2 - Pre-Alpha',
