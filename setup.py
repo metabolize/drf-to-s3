@@ -10,25 +10,25 @@ except (IOError, ImportError):
 from setuptools import setup
 
 setup(
-    name = "drf-to-s3",
-    version = __import__("passwords").__version__,
-    author = "Body Labs",
-    author_email = "paul.melnikow@bodylabs.com",
-    description = "Django REST Framework interface for direct upload to S3",
+    name = 'drf-to-s3',
+    version = __import__('drf_to_s3').__version__,
+    author = 'Body Labs',
+    author_email = 'paul.melnikow@bodylabs.com',
+    description = 'Django REST Framework Interface for direct upload to S3',
     long_description = long_description
-    url = "http://github.com/dstufft/django-passwords/",
-    license = "BSD",
+    url = 'https://bitbucket.org/bodylabs/drf-to-s3',
+    license = 'All rights reserved',
     packages = [
-        "passwords",
+        'drf-to-s3',
     ],
     classifiers = [
-        "Development Status :: 4 - Beta",
-        "Environment :: Web Environment",
-        "Intended Audience :: Developers",
-        "License :: OSI Approved :: BSD License",
-        "Operating System :: OS Independent",
-        "Programming Language :: Python",
-        "Topic :: Utilities",
-        "Framework :: Django",
+        'Development Status :: 2 - Pre-Alpha',
+        'Environment :: Web Environment',
+        'Framework :: Django',
+        'Intended Audience :: Developers',
+        'License :: Other/Proprietary License',
+        'Operating System :: OS Independent',
+        'Programming Language :: Python',
+        'Topic :: Internet :: WWW/HTTP'
     ]
 )
