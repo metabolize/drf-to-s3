@@ -222,9 +222,17 @@ class BaseUploadPolicySerializer(serializers.Serializer):
         'success_action_status',
         'x-amz-security-token',
     ]
-    allowed_buckets = []
     allowed_acls = ['private']
-    allowed_success_action_redirect_values = []
+
+    @property
+    def allowed_buckets(self):
+        from django.conf import settings
+        return settings.AWS_UPLOAD_ALLOWED_BUCKETS
+
+    @property
+    def allowed_success_action_redirect_values(self):
+        from django.conf import settings
+        return getattr(settings, 'AWS_UPLOAD_SUCCESS_ACTION_REDIRECT_VALUES', [])
 
     def restore_object(self, attrs, instance=None):
         from drf_to_s3.models import UploadPolicy

@@ -18,9 +18,10 @@ class FineUploaderSignUploadPolicyView(APIView):
     '''
     from rest_framework.parsers import JSONParser
     from rest_framework.renderers import JSONRenderer
+    from drf_to_s3.serializers import FineUploaderPolicySerializer
 
-    serializer_class = None # Subclasses must override
     expire_after_seconds = 300
+    serializer_class = FineUploaderPolicySerializer
     parser_classes = (JSONParser,)
     renderer_classes = (JSONRenderer,)
 
@@ -28,14 +29,6 @@ class FineUploaderSignUploadPolicyView(APIView):
     def aws_secret_access_key(self):
         from django.conf import settings
         return settings.AWS_UPLOAD_SECRET_ACCESS_KEY
-
-    def get_serializer_class(self):
-        from django.core.exceptions import ImproperlyConfigured
-        if self.serializer_class is None:
-            raise ImproperlyConfigured(
-                    _('Subclasses must override serializer_class')
-                )
-        return self.serializer_class
 
     def pre_sign(self, upload_policy):
         import datetime
@@ -47,7 +40,7 @@ class FineUploaderSignUploadPolicyView(APIView):
         from rest_framework.response import Response
         from drf_to_s3.utils import sign_policy_document
 
-        request_serializer = self.get_serializer_class()(data=request.DATA)
+        request_serializer = self.serializer_class(data=request.DATA)
         if not request_serializer.is_valid():
             response = {
                 'invalid': True,
@@ -57,7 +50,7 @@ class FineUploaderSignUploadPolicyView(APIView):
 
         upload_policy = request_serializer.object
         self.pre_sign(upload_policy)
-        response_serializer = self.get_serializer_class()(upload_policy)
+        response_serializer = self.serializer_class(upload_policy)
         response = sign_policy_document(
             policy_document=response_serializer.data,
             secret_key=self.aws_secret_access_key
