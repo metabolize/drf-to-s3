@@ -2,6 +2,11 @@ from django.utils.translation import ugettext as _
 
 
 def upload_bucket():
+    '''
+    The upload bucket. Exposed here for convenience, as you
+    may need to send it to the client to easily dev/prod
+    configuration.
+    '''
     from django.conf import settings
     return settings.AWS_UPLOAD_BUCKET
 
