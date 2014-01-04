@@ -1,15 +1,12 @@
 import datetime, json, unittest
 from django.core.exceptions import ValidationError
-from drf_to_s3.serializers import DefaultPolicySerializer
 
 
 class DefaultPolicySerializerTest(unittest.TestCase):
 
-    class MySerializer(DefaultPolicySerializer):
-        allowed_buckets = ['my-bucket']
-
     def setUp(self):
-        self.serializer_class = self.MySerializer
+        from drf_to_s3.serializers import DefaultPolicySerializer
+        self.serializer_class = DefaultPolicySerializer
 
     def test_serialize_is_valid(self):
         json_data = '''
@@ -29,8 +26,6 @@ class DefaultPolicySerializerTest(unittest.TestCase):
         '''
         data = json.loads(json_data)
         serializer = self.serializer_class(data=data)
-        serializer.allowed_buckets = ['my-bucket']
-        serializer.allowed_acls = ['public-read']
         self.assertTrue(serializer.is_valid())
         result = serializer.object
         self.assertIsInstance(result['expiration'], datetime.datetime)
@@ -53,8 +48,6 @@ class DefaultPolicySerializerTest(unittest.TestCase):
         '''
         data = json.loads(json_data)
         serializer = self.serializer_class(data=data)
-        serializer.allowed_buckets = ['my-bucket']
-        serializer.allowed_acls = ['public-read']
         expected = ['Required condition is missing']
         self.assertEquals(serializer.errors['conditions.key'], expected)
 
@@ -76,8 +69,6 @@ class DefaultPolicySerializerTest(unittest.TestCase):
         '''
         data = json.loads(json_data)
         serializer = self.serializer_class(data=data)
-        serializer.allowed_buckets = ['my-bucket']
-        serializer.allowed_acls = ['public-read']
         self.assertTrue(serializer.is_valid())
         result = serializer.object
         self.assertIsInstance(result.expiration, datetime.datetime)
@@ -101,8 +92,6 @@ class DefaultPolicySerializerTest(unittest.TestCase):
         '''
         data = json.loads(json_data)
         serializer = self.serializer_class(data=data)
-        serializer.allowed_buckets = ['my-bucket']
-        serializer.allowed_acls = ['public-read']
         expected = ['Invalid character in key']
         self.assertEquals(serializer.errors['conditions.key'], expected)
 
