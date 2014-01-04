@@ -41,7 +41,7 @@ class FineUploaderPolicySerializerTest(APITestCase):
     def test_sign_upload_overrides_expiration_date(self):
         resp = self.client.post('/s3/sign/', self.policy_document, format='json')
         policy_decoded = json.loads(resp.content)['policy_decoded']
-        expiration = datetime.datetime.strptime(policy_decoded['expiration'], '%Y-%m-%dT%H:%M:%S.%f')
+        expiration = datetime.datetime.strptime(policy_decoded['expiration'], '%Y-%m-%dT%H:%M:%SZ')
         expected_expiration_before = datetime.datetime.today() + datetime.timedelta(300 + 1)
         self.assertLess(expiration, expected_expiration_before)
 

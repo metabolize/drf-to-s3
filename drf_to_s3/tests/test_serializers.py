@@ -162,6 +162,12 @@ class UploadPolicyConditionFieldDeserializationTest(unittest.TestCase):
 
 class BaseUploadPolicySerializerTest(unittest.TestCase):
 
+    class MySerializer(BaseUploadPolicySerializer):
+        allowed_buckets = ['janesmith', 'johnsmith']
+
+    def setUp(self):
+        self.serializer_class = self.MySerializer
+
     def test_that_serialize_with_bucket_and_key_succeeds(self):
         json_data = '''
         {
@@ -173,8 +179,7 @@ class BaseUploadPolicySerializerTest(unittest.TestCase):
         }
         '''
         data = json.loads(json_data)
-        serializer = BaseUploadPolicySerializer(data=data)
-        serializer.allowed_buckets = ['johnsmith']
+        serializer = self.serializer_class(data=data)
         self.assertTrue(serializer.is_valid())
 
     def test_that_serialize_without_bucket_fails(self):
@@ -186,7 +191,7 @@ class BaseUploadPolicySerializerTest(unittest.TestCase):
         }
         '''
         data = json.loads(json_data)
-        serializer = BaseUploadPolicySerializer(data=data)
+        serializer = self.serializer_class(data=data)
         self.assertFalse(serializer.is_valid())
         expected = ['Required condition is missing']
         self.assertEquals(serializer.errors['conditions.bucket'], expected)
@@ -202,7 +207,7 @@ class BaseUploadPolicySerializerTest(unittest.TestCase):
         }
         '''
         data = json.loads(json_data)
-        serializer = BaseUploadPolicySerializer(data=data)
+        serializer = self.serializer_class(data=data)
         self.assertFalse(serializer.is_valid())
         expected = ['Invalid element name: foo']
         self.assertEquals(serializer.errors['conditions'], expected)
@@ -216,7 +221,7 @@ class BaseUploadPolicySerializerTest(unittest.TestCase):
         }
         '''
         data = json.loads(json_data)
-        serializer = BaseUploadPolicySerializer(data=data)
+        serializer = self.serializer_class(data=data)
         serializer.required_conditions = []
         self.assertTrue(serializer.is_valid())
 
@@ -230,8 +235,7 @@ class BaseUploadPolicySerializerTest(unittest.TestCase):
         }
         '''
         data = json.loads(json_data)
-        serializer = BaseUploadPolicySerializer(data=data)
-        serializer.allowed_buckets = ['johnsmith']
+        serializer = self.serializer_class(data=data)
         serializer.required_conditions = []
         serializer.optional_conditions = ['foo']
         self.assertTrue(serializer.is_valid())
@@ -246,7 +250,7 @@ class BaseUploadPolicySerializerTest(unittest.TestCase):
         }
         '''
         data = json.loads(json_data)
-        serializer = BaseUploadPolicySerializer(data=data)
+        serializer = self.serializer_class(data=data)
         serializer.validate_expiration = mock.MagicMock()
         serializer.is_valid()
         self.assertTrue(serializer.validate_expiration.called)
@@ -262,7 +266,7 @@ class BaseUploadPolicySerializerTest(unittest.TestCase):
         }
         '''
         data = json.loads(json_data)
-        serializer = BaseUploadPolicySerializer(data=data)
+        serializer = self.serializer_class(data=data)
         serializer.optional_conditions = ['foo']
         serializer.validate_condition_bucket = mock.MagicMock()
         serializer.validate_condition_foo = mock.MagicMock()
@@ -276,22 +280,7 @@ class BaseUploadPolicySerializerTest(unittest.TestCase):
     # FIXME Test that when there's a missing key and a condition validation
     # error, both are returned
 
-    def test_that_after_configuration_serialize_with_valid_bucket_and_key_succeeds(self):
-        json_data = '''
-        {
-            "expiration": "2007-12-01T12:00:00.000Z",
-            "conditions": [
-                {"bucket": "johnsmith"},
-                {"key": "/foo/bar/baz"}
-            ]
-        }
-        '''
-        data = json.loads(json_data)
-        serializer = BaseUploadPolicySerializer(data=data)
-        serializer.allowed_buckets = ['janesmith', 'johnsmith']
-        self.assertTrue(serializer.is_valid())
-
-    def test_that_after_configuration_serialize_with_invalid_bucket_fails(self):
+    def test_that_serialize_with_invalid_bucket_fails(self):
         json_data = '''
         {
             "expiration": "2007-12-01T12:00:00.000Z",
@@ -301,8 +290,7 @@ class BaseUploadPolicySerializerTest(unittest.TestCase):
         }
         '''
         data = json.loads(json_data)
-        serializer = BaseUploadPolicySerializer(data=data)
-        serializer.allowed_buckets = ['janesmith', 'johnsmith']
+        serializer = self.serializer_class(data=data)
         self.assertFalse(serializer.is_valid())
         expected = ['Bucket not allowed']
         self.assertEquals(serializer.errors['conditions.bucket'], expected)
@@ -317,7 +305,7 @@ class BaseUploadPolicySerializerTest(unittest.TestCase):
         }
         '''
         data = json.loads(json_data)
-        serializer = BaseUploadPolicySerializer(data=data)
+        serializer = self.serializer_class(data=data)
         serializer.required_conditions = []
         self.assertTrue(serializer.is_valid())
 
@@ -331,7 +319,7 @@ class BaseUploadPolicySerializerTest(unittest.TestCase):
         }
         '''
         data = json.loads(json_data)
-        serializer = BaseUploadPolicySerializer(data=data)
+        serializer = self.serializer_class(data=data)
         serializer.required_conditions = []
         expected = ['Invalid Content-Type']
         self.assertEquals(serializer.errors['conditions.Content-Type'], expected)
@@ -345,7 +333,7 @@ class BaseUploadPolicySerializerTest(unittest.TestCase):
         }
         '''
         data = json.loads(json_data)
-        serializer = BaseUploadPolicySerializer(data=data)
+        serializer = self.serializer_class(data=data)
         serializer.required_conditions = []
         expected = ['Invalid Content-Type']
         self.assertEquals(serializer.errors['conditions.Content-Type'], expected)
@@ -359,7 +347,7 @@ class BaseUploadPolicySerializerTest(unittest.TestCase):
         }
         '''
         data = json.loads(json_data)
-        serializer = BaseUploadPolicySerializer(data=data)
+        serializer = self.serializer_class(data=data)
         serializer.required_conditions = []
         expected = ['Invalid Content-Type']
         self.assertEquals(serializer.errors['conditions.Content-Type'], expected)
@@ -374,7 +362,7 @@ class BaseUploadPolicySerializerTest(unittest.TestCase):
         }
         '''
         data = json.loads(json_data)
-        serializer = BaseUploadPolicySerializer(data=data)
+        serializer = self.serializer_class(data=data)
         serializer.required_conditions = []
         serializer.optional_conditions = ['success_action_status']
         expected = ['success_action_status should be between 200 and 399']
@@ -389,7 +377,7 @@ class BaseUploadPolicySerializerTest(unittest.TestCase):
         }
         '''
         data = json.loads(json_data)
-        serializer = BaseUploadPolicySerializer(data=data)
+        serializer = self.serializer_class(data=data)
         serializer.required_conditions = []
         serializer.optional_conditions = ['success_action_status']
         expected = ['success_action_status should be between 200 and 399']
@@ -404,7 +392,7 @@ class BaseUploadPolicySerializerTest(unittest.TestCase):
         }
         '''
         data = json.loads(json_data)
-        serializer = BaseUploadPolicySerializer(data=data)
+        serializer = self.serializer_class(data=data)
         serializer.required_conditions = []
         serializer.optional_conditions = ['success_action_status']
         expected = ['Invalid success_action_status']
@@ -420,7 +408,7 @@ class BaseUploadPolicySerializerTest(unittest.TestCase):
         }
         '''
         data = json.loads(json_data)
-        serializer = BaseUploadPolicySerializer(data=data)
+        serializer = self.serializer_class(data=data)
         serializer.required_conditions = []
         serializer.optional_conditions = ['key']
         expected = ['Key should be a string']
@@ -436,13 +424,19 @@ class BaseUploadPolicySerializerTest(unittest.TestCase):
         }
         '''
         data = json.loads(json_data)
-        serializer = BaseUploadPolicySerializer(data=data)
+        serializer = self.serializer_class(data=data)
         serializer.required_conditions = []
         serializer.optional_conditions = ['x-amz-meta-qqfilename']
         expected = ['Invalid character in x-amz-meta-qqfilename']
         self.assertEquals(serializer.errors['conditions.x-amz-meta-qqfilename'], expected)
 
 class FineUploaderPolicySerializerTest(unittest.TestCase):
+
+    class MySerializer(FineUploaderPolicySerializer):
+        allowed_buckets = ['my-bucket']
+
+    def setUp(self):
+        self.serializer_class = self.MySerializer
 
     def test_serialize_is_valid(self):
         json_data = '''
@@ -461,7 +455,7 @@ class FineUploaderPolicySerializerTest(unittest.TestCase):
         }
         '''
         data = json.loads(json_data)
-        serializer = FineUploaderPolicySerializer(data=data)
+        serializer = self.serializer_class(data=data)
         serializer.allowed_buckets = ['my-bucket']
         serializer.allowed_acls = ['public-read']
         self.assertTrue(serializer.is_valid())
@@ -485,7 +479,7 @@ class FineUploaderPolicySerializerTest(unittest.TestCase):
         }
         '''
         data = json.loads(json_data)
-        serializer = FineUploaderPolicySerializer(data=data)
+        serializer = self.serializer_class(data=data)
         serializer.allowed_buckets = ['my-bucket']
         serializer.allowed_acls = ['public-read']
         expected = ['Required condition is missing']
@@ -508,13 +502,11 @@ class FineUploaderPolicySerializerTest(unittest.TestCase):
         }
         '''
         data = json.loads(json_data)
-        serializer = FineUploaderPolicySerializer(data=data)
+        serializer = self.serializer_class(data=data)
         serializer.allowed_buckets = ['my-bucket']
         serializer.allowed_acls = ['public-read']
         expected = ['content_length_range should be ordered ascending']
         self.assertEquals(serializer.errors['conditions.content-length-range'], expected)
-
-class FineUploaderPolicySerializerTest(unittest.TestCase):
 
     def test_serialize_is_valid(self):
         json_data = '''
@@ -533,7 +525,7 @@ class FineUploaderPolicySerializerTest(unittest.TestCase):
         }
         '''
         data = json.loads(json_data)
-        serializer = FineUploaderPolicySerializer(data=data)
+        serializer = self.serializer_class(data=data)
         serializer.allowed_buckets = ['my-bucket']
         serializer.allowed_acls = ['public-read']
         self.assertTrue(serializer.is_valid())
@@ -558,7 +550,7 @@ class FineUploaderPolicySerializerTest(unittest.TestCase):
         }
         '''
         data = json.loads(json_data)
-        serializer = FineUploaderPolicySerializer(data=data)
+        serializer = self.serializer_class(data=data)
         serializer.allowed_buckets = ['my-bucket']
         serializer.allowed_acls = ['public-read']
         expected = ['Invalid character in key']
