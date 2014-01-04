@@ -31,13 +31,13 @@ class FineUploaderSignUploadPolicyView(APIView):
         return settings.AWS_UPLOAD_SECRET_ACCESS_KEY
 
     def pre_sign(self, upload_policy):
-        from drf_to_s3.utils import utc_plus
-        upload_policy.expiration = utc_plus(self.expire_after_seconds)
+        from drf_to_s3 import s3
+        upload_policy.expiration = s3.utc_plus(self.expire_after_seconds)
 
     def post(self, request, format=None):
         from rest_framework import status
         from rest_framework.response import Response
-        from drf_to_s3.utils import sign_policy_document
+        from drf_to_s3 import s3
 
         request_serializer = self.serializer_class(data=request.DATA)
         if not request_serializer.is_valid():
@@ -50,7 +50,7 @@ class FineUploaderSignUploadPolicyView(APIView):
         upload_policy = request_serializer.object
         self.pre_sign(upload_policy)
         response_serializer = self.serializer_class(upload_policy)
-        response = sign_policy_document(
+        response = s3.sign_policy_document(
             policy_document=response_serializer.data,
             secret_key=self.aws_secret_access_key
         )
