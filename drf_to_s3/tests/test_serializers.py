@@ -1,12 +1,12 @@
 import datetime, json, mock, unittest
 from django.core.exceptions import ValidationError
 from drf_to_s3.models import Policy, PolicyCondition
-from drf_to_s3.serializers import FinePolicySerializer
+from drf_to_s3.serializers import DefaultPolicySerializer
 
 
-class FineUploaderPolicySerializerTest(unittest.TestCase):
+class DefaultPolicySerializerTest(unittest.TestCase):
 
-    class MySerializer(FinePolicySerializer):
+    class MySerializer(DefaultPolicySerializer):
         allowed_buckets = ['my-bucket']
 
     def setUp(self):

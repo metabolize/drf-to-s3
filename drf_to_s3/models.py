@@ -15,7 +15,7 @@ class Policy(object):
         self.expiration = kwargs.get('expiration')
         self.conditions = kwargs.get('conditions')
 
-    def __getattr__(self, element_name):
+    def __getitem__(self, element_name):
         '''
         Return the condition matching the given element name.
         Raises AttributeError if there is no matching condition.

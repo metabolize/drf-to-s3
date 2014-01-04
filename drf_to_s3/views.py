@@ -4,11 +4,8 @@ from rest_framework.renderers import StaticHTMLRenderer
 from rest_framework.views import APIView
 
 
-class FineUploaderSignUploadPolicyView(APIView):
+class FineSignPolicyView(APIView):
     '''
-    serializer_class: Your subclass of DefaultUploadPolicySerializer
-      or FineUploaderPolicySerializer. Default is None; subclasses
-      must override, and at a minimum set allowed_buckets.
     aws_secret_access_key: Your AWS secret access key, preferably
       for an account which only has put privileges. Subclasses
       may override and set this property, or else it will pull
@@ -18,19 +15,45 @@ class FineUploaderSignUploadPolicyView(APIView):
     '''
     from rest_framework.parsers import JSONParser
     from rest_framework.renderers import JSONRenderer
-    from drf_to_s3.serializers import FinePolicySerializer
+    from drf_to_s3.serializers import DefaultPolicySerializer
 
     expire_after_seconds = 300
-    serializer_class = FinePolicySerializer
+    serializer_class = DefaultPolicySerializer
     parser_classes = (JSONParser,)
     renderer_classes = (JSONRenderer,)
 
-    @property
-    def aws_secret_access_key(self):
+    def get_aws_secret_access_key(self):
         from django.conf import settings
         return settings.AWS_UPLOAD_SECRET_ACCESS_KEY
 
+    def make_error_response(self, request, serializer):
+        '''
+        This implementation is designed for Fine Uploader,
+        which expects `invalid: True`.
+        FIXME this should provide a user-readable 'error' message.
+        '''
+        from rest_framework import status
+        from rest_framework.response import Response
+        response = {
+            'invalid': True,
+            'errors': serializer.errors,
+        }
+        return Response(response, status=status.HTTP_400_BAD_REQUEST)
+
+    def check_policy_permissions(self, request, upload_policy):
+        '''
+        Given a valid upload policy, check that the user
+        has permission to upload to the given bucket,
+        path, etc.
+        '''
+        from drf_to_s3.access_control import check_permissions
+        check_permissions(request.user, upload_policy)
+
     def pre_sign(self, upload_policy):
+        '''
+        Amend the policy before signing. This overrides the
+        policy expiration time.
+        '''
         from drf_to_s3 import s3
         upload_policy.expiration = s3.utc_plus(self.expire_after_seconds)
 
@@ -41,22 +64,23 @@ class FineUploaderSignUploadPolicyView(APIView):
 
         request_serializer = self.serializer_class(data=request.DATA)
         if not request_serializer.is_valid():
-            response = {
-                'invalid': True,
-                'errors': request_serializer.errors,
-            }
-            return Response(response, status=status.HTTP_400_BAD_REQUEST)
-
+            return self.make_error_response(request, request_serializer)
         upload_policy = request_serializer.object
-        self.pre_sign(upload_policy)
-        response_serializer = self.serializer_class(upload_policy)
-        response = s3.sign_policy_document(
-            policy_document=response_serializer.data,
-            secret_key=self.aws_secret_access_key
-        )
-        # We add this to assist with debugging and testing
-        response['policy_decoded'] = response_serializer.data
 
+        self.check_policy_permissions(request, upload_policy)
+        self.pre_sign(upload_policy)
+
+        policy_document = self.serializer_class(upload_policy).data
+        signed_policy = s3.sign_policy_document(
+            policy_document=policy_document,
+            secret_key=self.get_aws_secret_access_key()
+        )
+        response = {
+            'policy': signed_policy['policy'],
+            'signature': signed_policy['signature'],
+            'policy_decoded': policy_document,
+            # Provide this to assist with debugging and testing
+        }
         return Response(response)
 
 
@@ -120,7 +144,7 @@ class FineUploaderUploadNotificationView(APIView):
     def post(self, request, format=None):
         from rest_framework import status
         from rest_framework.response import Response
-        from drf_to_s3.serializers import FineUploadNotificationSerializer
+        from drf_to_s3.naive_serializers import FineUploadNotificationSerializer
         serializer = FineUploadNotificationSerializer(data=request.DATA)
         if not serializer.is_valid():
             response = {

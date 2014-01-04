@@ -4,7 +4,7 @@ from drf_to_s3.models import Policy, PolicyCondition
 from drf_to_s3 import naive_serializers
 
 
-class NaivePolicyConditionFieldTest(unittest.TestCase):
+class TestNaivePolicyConditionFieldToNative(unittest.TestCase):
 
     def setUp(self):
         self.field = naive_serializers.NaivePolicyConditionField()
@@ -47,7 +47,7 @@ class NaivePolicyConditionFieldTest(unittest.TestCase):
         expected = ['content-length-range', 1048579, 10485760]
         self.assertEquals(result, expected)
 
-class PolicyConditionFieldDeserializationTest(unittest.TestCase):
+class TestNaivePolicyConditionFieldFromNative(unittest.TestCase):
 
     def setUp(self):
         self.field = naive_serializers.NaivePolicyConditionField()      

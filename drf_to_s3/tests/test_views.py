@@ -4,21 +4,15 @@ from django.test.utils import override_settings
 from rest_framework import status
 from rest_framework.test import APITestCase
 
-class FineUploaderPolicySerializerTest(APITestCase):
-    from drf_to_s3.views import FineUploaderSignUploadPolicyView
-
-    class TestView(FineUploaderSignUploadPolicyView):
-        from drf_to_s3.serializers import FinePolicySerializer
-
-        class TestSerializer(FinePolicySerializer):
-            allowed_buckets = ['my-bucket']
-
-        serializer_class = TestSerializer
-        aws_secret_access_key = '12345'
-
+class FineSignPolicyViewTest(APITestCase):
+    from drf_to_s3.views import FineSignPolicyView
     urls = patterns('',
-        url(r'^s3/sign/$', TestView.as_view()),
+        url(r'^s3/sign/$', FineSignPolicyView.as_view()),
     )
+    override_settings = {
+        'AWS_UPLOAD_SECRET_ACCESS_KEY': '12345',
+        'AWS_UPLOAD_BUCKET': 'my-bucket',
+    }
 
     def setUp(self):
         self.policy_document = {
@@ -54,25 +48,27 @@ class FineUploaderPolicySerializerTest(APITestCase):
     def test_that_disallowed_bucket_returns_expected_error(self):
         self.policy_document['conditions'][1]['bucket'] = 'secret-bucket'
         resp = self.client.post('/s3/sign/', self.policy_document, format='json')
-        self.assertEquals(resp.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEquals(resp.status_code, status.HTTP_403_FORBIDDEN)
         expected = {'invalid': True, 'errors': {'conditions.bucket': ['Bucket not allowed']}}
         self.assertEquals(json.loads(resp.content), expected)
 
     def test_that_disallowed_acl_returns_expected_error(self):
         self.policy_document['conditions'][0]['acl'] = 'public-read'
         resp = self.client.post('/s3/sign/', self.policy_document, format='json')
-        self.assertEquals(resp.status_code, status.HTTP_400_BAD_REQUEST)
-        expected = {'invalid': True, 'errors': {'conditions.acl': ['ACL not allowed']}}
+        self.assertEquals(resp.status_code, status.HTTP_403_FORBIDDEN)
+        expected = {'invalid': True, 'errors': {'conditions.acl': ["ACL should be 'private'"]}}
         self.assertEquals(json.loads(resp.content), expected)
+
+FineSignPolicyViewTest = override_settings(**FineSignPolicyViewTest.override_settings)(FineSignPolicyViewTest)
 
 
 class FineUploaderSettingsTest(APITestCase):
 
     @override_settings(AWS_UPLOAD_SECRET_ACCESS_KEY='1451')
     def test_that_secret_key_pulls_from_settings(self):
-        from drf_to_s3.views import FineUploaderSignUploadPolicyView
-        view = FineUploaderSignUploadPolicyView()
-        self.assertEquals(view.aws_secret_access_key, '1451')
+        from drf_to_s3.views import FineSignPolicyView
+        view = FineSignPolicyView()
+        self.assertEquals(view.get_aws_secret_access_key(), '1451')
 
 
 class TestEmptyHTMLView(APITestCase):

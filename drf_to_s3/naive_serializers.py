@@ -161,29 +161,8 @@ class NaivePolicySerializer(serializers.Serializer):
      2. Provide stupid validation of variable types, that
         key and content-type are valid, and so on
 
-    DefaultUploadPolicySerializer provides some more
+    serializer.DefaultPolicySerializer provides more
     conservative defaults.
-
-    Set a few values to control the validation:
-
-    required_conditions: A list of required elements. Missing
-      one these conditions will raise a ValidationError.
-    optional_conditions: A list of optional elements. Conditions
-      which are not in required_conditions or optional_conditions
-      will raise a ValidationError. Default is all the keys in
-      the schema. Note that condition names are case sensitive at
-      the moment.
-    allowed_buckets: A list of allowed S3 buckets. Subclasses must
-      override, as the default is [].
-    allowed_acls: A list of allowed S3 canned ACLs to set on the
-      uploaded file. The default is ['private']
-    allowed_success_action_redirect_values: A list of values which
-      may be provided for success_action_redirect.
-
-    e.g.
-
-    allowed_buckets = ['my-app-storage', 'my-app-secondary-storage']
-    allowed_success_action_redirect_values = ['/s3/success_redirect']
 
     To provide custom validation of an individual element, a
     subclass may implement
@@ -206,226 +185,37 @@ class NaivePolicySerializer(serializers.Serializer):
         queryset=EmptyQuerySet
     )
 
-    required_conditions = [
-        'bucket',
-        'key',
-    ]
-    optional_conditions = [
-        'content-length-range',
-        'Cache-Control',
-        'Content-Type',
-        'Content-Disposition',
-        'Content-Encoding',
-        'Expires',
-        'redirect',
-        'success_action_redirect',
-        'success_action_status',
-        'x-amz-security-token',
-    ]
-    allowed_acls = ['private']
-
-    @property
-    def allowed_buckets(self):
-        from django.conf import settings
-        return settings.AWS_UPLOAD_ALLOWED_BUCKETS
-
-    @property
-    def allowed_success_action_redirect_values(self):
-        from django.conf import settings
-        return getattr(settings, 'AWS_UPLOAD_SUCCESS_ACTION_REDIRECT_VALUES', [])
-
     def restore_object(self, attrs, instance=None):
         from drf_to_s3.models import Policy
         return Policy(**attrs)
 
-    def validate_expiration(self, attrs, source):
+    def validate(self, attrs):
         '''
-        I suggest discarding this value entirely, and replacing
-        it with a value on the server instead. Accordingly, this
-        does nothing.
-
-        Subclasses may override, though, and should either return
-        attrs or raise a ValidationError.
+        1. Disallow multiple conditions with the same element name
+        2. Use introspection to validate individual conditions which are present.
         '''
-        return attrs
-
-    def validate_conditions(self, attrs, source):
-        '''
-        1. Disallow starts-with, which complicates validation, and probably
-           is unnecessary
-        2. Make sure conditions are in required_conditions or optional_conditions
-        3. Use introspection to validate individual conditions which are
-           present
-        4. Require that required_conditions are present
-        '''
-        conditions = attrs[source]
+        from .util import duplicates_in
+        conditions = attrs.get('conditions', [])
+        errors = {}
+        all_names = [item.element_name for item in conditions]
+        for name in duplicates_in(all_names):
+            message = _('Duplicate element name')
+            errors['conditions.' + item.element_name] = [message]
         for item in conditions:
-            if item.has_alternate_operator():
-                err = _('starts-with operator is not allowed')
-                self._errors[source + '.' + item.element_name] = [err]
-            elif item.element_name not in self.required_conditions + self.optional_conditions:
-                err = _('Invalid element name')
-                self._errors[source + '.' + item.element_name] = [err]
-            else:
-                # validate_condition_Content-Type -> validate_condition_Content_Type
-                condition_validate_method_name = "validate_condition_%s" % item.element_name.replace('-', '_')
-                condition_validate = getattr(self, condition_validate_method_name, None)
-                if condition_validate:
-                    try:
-                        condition_validate(item)
-                    except ValidationError as err:
-                        self._errors[source + '.' + item.element_name] = list(err.messages)
-        missing_conditions = set(self.required_conditions) - set([item.element_name for item in conditions])
-        for element_name in missing_conditions:
-            err = _('Required condition is missing')
-            self._errors[source + '.' + element_name] = [err]
-        return attrs
-
-    def validate_condition_acl(self, condition):
-        '''
-        Require that acl is in the list of allowed_acls.
-        '''
-        if condition.value not in self.allowed_acls:
-            raise ValidationError(
-                _('ACL not allowed'),
-            )
-
-    def validate_condition_bucket(self, condition):
-        '''
-        Require that bucket is in the list of allowed_buckets.
-        '''
-        if condition.value not in self.allowed_buckets:
-            raise ValidationError(
-                _('Bucket not allowed'),
-            )
-
-    def validate_condition_Content_Type(self, condition):
-        '''
-        Require a valid Media Type according to the RFC.
-        '''
-        import string
-        if not isinstance(condition.value, basestring):
-            raise ValidationError(
-                _('Content-Type should be a string: %(value)s'),
-                params={'value': condition.value},
-            )
-        allowed_characters = frozenset(
-            string.ascii_letters +
-            string.digits +
-            '!' + '#' + '$' + '&' + '.' + '+' + '-' + '^' + '_'
-        )
-        try:
-            first, rest = condition.value.split('/', 1)
-        except ValueError:
-            raise ValidationError(
-                _('Invalid Content-Type'),
-            )
-        if any([char not in allowed_characters for char in first + rest]):
-            raise ValidationError(
-                _('Invalid Content-Type'),
-            )
-
-    def validate_condition_success_action_status(self, condition):
-        '''
-        Require that success_action_status is numeric and reasonable.
-        '''
-        if condition.value is None:
-            return
-        elif isinstance(condition.value, basestring):
-            if not unicode(condition.value).isnumeric():
-                raise ValidationError(
-                    _('Invalid success_action_status'),
-                )
-            status_code = int(condition.value)
-        elif isinstance(condition.value, int):
-            status_code = condition.value
+            # FIXME this needs to sanitize the arguments a bit more
+            # validate_condition_Content-Type -> validate_condition_Content_Type
+            sanitized_element_name = item.element_name.replace('-', '_')
+            condition_validate = getattr(self, "validate_condition_%s" % sanitized_element_name, None)
+            if condition_validate:
+                try:
+                    condition_validate(item)
+                except ValidationError as err:
+                    field_name = 'conditions.' + item.element_name
+                    errors[field_name] = errors.get(field_name, []) + list(err.messages)
+        if len(errors):
+            raise ValidationError(errors)
         else:
-            raise ValidationError(
-                _('Invalid success_action_status'),
-            )
-        if status_code < 200 or status_code >= 400:
-            raise ValidationError(
-                _('success_action_status should be between 200 and 399'),
-            )
-
-    def validate_success_action_redirect(self, condition):
-        '''
-        Require that validate_success_action_redirect is None or in
-        the allowed list.
-        '''
-        if condition.value is None:
-            return
-        elif not condition.value in self.allowed_success_action_redirect_values:
-            raise ValidationError(
-                _('Invalid allowed_success_action_redirect value'),
-            )
-
-    def validate_condition_key(self, condition):
-        '''
-        Require that key is a string and not too long.
-
-        Perhaps absurdly, S3 allows keys to be any unicode character.
-        That includes unprintable characters and direction-changing
-        characters, which sounds like trouble. Use
-        LimitKeyToUrlCharactersMixin to provide saner validation of
-        this value.
-        '''
-        if not isinstance(condition.value, basestring):
-            raise ValidationError(
-                _('Key should be a string'),
-            )
-        elif len(condition.value.decode('utf-8')) > 1024:
-            raise ValidationError(
-                _('Key too long'),
-            )
-
-    @classmethod
-    def string_contains_only_url_characters(cls, string_value):
-        '''
-        Raise an exception if string_value contains non-URL characters.
-        '''
-        valid_characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~:/?#[]@!$&'()*+,;="
-        return all([char in valid_characters for char in string_value])
-
-    def validate_condition_x_amz_meta_qqfilename(self, condition):
-        '''
-        Require that x-amz-meta-qqfilename is a string containing
-        only URL characters.
-        '''
-        if not isinstance(condition.value, basestring):
-            raise ValidationError(
-                _('x-amz-meta-qqfilename should be a string'),
-            )
-        if not self.string_contains_only_url_characters(condition.value):
-            raise ValidationError(
-                _('Invalid character in x-amz-meta-qqfilename'),
-            )
-
-    def validate_condition_content_length_range(self, condition):
-        values = condition.value is not None and [condition.value] or condition.value_range
-        num_values = []
-        for value in values:
-            if isinstance(value, basestring):
-                if not unicode(value).isnumeric():
-                    raise ValidationError(
-                        _('Invalid value for content_length_range'),
-                    )
-                num_values.append(int(value))
-            elif isinstance(value, int):
-                num_values.append(value)
-            else:
-                raise ValidationError(
-                    _('Invalid value for content_length_range'),
-                )
-        for value in num_values:
-            if value < 0:
-                raise ValidationError(
-                    _('content_length_range should be nonnegative'),
-                )                
-        if len(num_values) == 2 and num_values[0] > num_values[1]:
-            raise ValidationError(
-                _('content_length_range should be ordered ascending'),
-            )
+            return attrs
 
 
 class FineUploadNotificationSerializer(serializers.Serializer):
