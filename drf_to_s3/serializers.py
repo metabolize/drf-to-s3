@@ -1,4 +1,3 @@
-from rest_framework import serializers
 from drf_to_s3 import naive_serializers
 from django.core.exceptions import ValidationError
 from django.utils.translation import ugettext as _
