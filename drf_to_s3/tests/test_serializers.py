@@ -209,8 +209,8 @@ class BaseUploadPolicySerializerTest(unittest.TestCase):
         data = json.loads(json_data)
         serializer = self.serializer_class(data=data)
         self.assertFalse(serializer.is_valid())
-        expected = ['Invalid element name: foo']
-        self.assertEquals(serializer.errors['conditions'], expected)
+        expected = ['Invalid element name']
+        self.assertEquals(serializer.errors['conditions.foo'], expected)
 
     def test_that_after_configuration_serialize_without_bucket_succeeds(self):
         json_data = '''

@@ -251,14 +251,22 @@ class BaseUploadPolicySerializer(serializers.Serializer):
 
     def validate_conditions(self, attrs, source):
         '''
-        1. Make sure conditions are in required_conditions or optional_conditions
-        2. Use introspection to validate individual conditions which are
+        1. Disallow starts-with, which complicates validation, and probably
+           is unnecessary
+        2. Make sure conditions are in required_conditions or optional_conditions
+        3. Use introspection to validate individual conditions which are
            present
-        3. Require that required_conditions are present
+        4. Require that required_conditions are present
         '''
         conditions = attrs[source]
         for item in conditions:
-            if item.element_name in self.required_conditions + self.optional_conditions:
+            if item.has_alternate_operator():
+                err = _('starts-with operator is not allowed')
+                self._errors[source + '.' + item.element_name] = [err]
+            elif item.element_name not in self.required_conditions + self.optional_conditions:
+                err = _('Invalid element name')
+                self._errors[source + '.' + item.element_name] = [err]
+            else:
                 # validate_condition_Content-Type -> validate_condition_Content_Type
                 condition_validate_method_name = "validate_condition_%s" % item.element_name.replace('-', '_')
                 condition_validate = getattr(self, condition_validate_method_name, None)
@@ -267,11 +275,6 @@ class BaseUploadPolicySerializer(serializers.Serializer):
                         condition_validate(item)
                     except ValidationError as err:
                         self._errors[source + '.' + item.element_name] = list(err.messages)
-            else:
-                raise ValidationError(
-                    _('Invalid element name: %(element_name)s'),
-                    params={'element_name': item.element_name},
-                )
         missing_conditions = set(self.required_conditions) - set([item.element_name for item in conditions])
         for element_name in missing_conditions:
             err = _('Required condition is missing')

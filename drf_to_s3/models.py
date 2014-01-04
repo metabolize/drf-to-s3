@@ -39,3 +39,11 @@ class UploadPolicyCondition(object):
             raise AssertionError('value and value_range should not both be defined')
         self.value = kwargs.get('value')
         self.value_range = kwargs.get('value_range')
+
+    def has_alternate_operator(self):
+        '''
+        Return True if the policy condition has an operator
+        (i.e. starts-with).
+
+        '''
+        return self.operator and self.operator != 'eq'
