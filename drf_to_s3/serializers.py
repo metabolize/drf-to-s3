@@ -274,10 +274,8 @@ class BaseUploadPolicySerializer(serializers.Serializer):
                 )
         missing_conditions = set(self.required_conditions) - set([item.element_name for item in conditions])
         for element_name in missing_conditions:
-            err = ValidationError(
-                _('Required condition is missing'),
-            )
-            self._errors[source + '.' + element_name] = list(err.messages)
+            err = _('Required condition is missing')
+            self._errors[source + '.' + element_name] = [err]
         return attrs
 
     def validate_condition_acl(self, condition):
