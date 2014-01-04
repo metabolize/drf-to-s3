@@ -200,7 +200,7 @@ class NaivePolicySerializer(serializers.Serializer):
         all_names = [item.element_name for item in conditions]
         for name in duplicates_in(all_names):
             message = _('Duplicate element name')
-            errors['conditions.' + item.element_name] = [message]
+            errors['conditions.' + name] = [message]
         for item in conditions:
             # FIXME this needs to sanitize the arguments a bit more
             # validate_condition_Content-Type -> validate_condition_Content_Type

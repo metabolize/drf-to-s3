@@ -182,26 +182,13 @@ class NaivePolicySerializerTest(unittest.TestCase):
         serializer = self.serializer_class(data=data)
         self.assertTrue(serializer.is_valid())
 
-    def test_that_serialize_without_bucket_fails(self):
-        json_data = '''
-        {
-            "expiration": "2007-12-01T12:00:00.000Z",
-            "conditions": [
-            ]
-        }
-        '''
-        data = json.loads(json_data)
-        serializer = self.serializer_class(data=data)
-        self.assertFalse(serializer.is_valid())
-        expected = ['Required condition is missing']
-        self.assertEquals(serializer.errors['conditions.bucket'], expected)
-
-    def test_that_serialize_with_extra_condition_fails(self):
+    def test_that_serialize_with_duplicate_condition_fails(self):
         json_data = '''
         {
             "expiration": "2007-12-01T12:00:00.000Z",
             "conditions": [
                 {"bucket": "johnsmith" },
+                {"bucket": "joesmith" },
                 {"foo": "bar" }
             ]
         }
@@ -209,8 +196,8 @@ class NaivePolicySerializerTest(unittest.TestCase):
         data = json.loads(json_data)
         serializer = self.serializer_class(data=data)
         self.assertFalse(serializer.is_valid())
-        expected = ['Invalid element name']
-        self.assertEquals(serializer.errors['conditions.foo'], expected)
+        expected = ['Duplicate element name']
+        self.assertEquals(serializer.errors['conditions.bucket'], expected)
 
     def test_that_after_configuration_serialize_without_bucket_succeeds(self):
         json_data = '''
@@ -280,21 +267,6 @@ class NaivePolicySerializerTest(unittest.TestCase):
     # FIXME Test that when there's a missing key and a condition validation
     # error, both are returned
 
-    def test_that_serialize_with_invalid_bucket_fails(self):
-        json_data = '''
-        {
-            "expiration": "2007-12-01T12:00:00.000Z",
-            "conditions": [
-                {"bucket": "joesmith"}
-            ]
-        }
-        '''
-        data = json.loads(json_data)
-        serializer = self.serializer_class(data=data)
-        self.assertFalse(serializer.is_valid())
-        expected = ['Bucket not allowed']
-        self.assertEquals(serializer.errors['conditions.bucket'], expected)
-
     def test_that_after_configuration_serialize_with_valid_content_type_succeeds(self):
         json_data = '''
         {
@@ -309,123 +281,3 @@ class NaivePolicySerializerTest(unittest.TestCase):
         serializer.required_conditions = []
         self.assertTrue(serializer.is_valid())
 
-    def test_that_after_configuration_serialize_with_invalid_content_type_fails(self):
-        json_data = '''
-        {
-            "expiration": "2007-12-01T12:00:00.000Z",
-            "conditions": [
-                {"Content-Type": ""}
-            ]
-        }
-        '''
-        data = json.loads(json_data)
-        serializer = self.serializer_class(data=data)
-        serializer.required_conditions = []
-        expected = ['Invalid Content-Type']
-        self.assertEquals(serializer.errors['conditions.Content-Type'], expected)
-
-        json_data = '''
-        {
-            "expiration": "2007-12-01T12:00:00.000Z",
-            "conditions": [
-                {"Content-Type": "foo/bar/baz"}
-            ]
-        }
-        '''
-        data = json.loads(json_data)
-        serializer = self.serializer_class(data=data)
-        serializer.required_conditions = []
-        expected = ['Invalid Content-Type']
-        self.assertEquals(serializer.errors['conditions.Content-Type'], expected)
-
-        json_data = '''
-        {
-            "expiration": "2007-12-01T12:00:00.000Z",
-            "conditions": [
-                {"Content-Type": "foo/bar@baz"}
-            ]
-        }
-        '''
-        data = json.loads(json_data)
-        serializer = self.serializer_class(data=data)
-        serializer.required_conditions = []
-        expected = ['Invalid Content-Type']
-        self.assertEquals(serializer.errors['conditions.Content-Type'], expected)
-
-    def test_that_after_configuration_serialize_with_invalid_success_action_status_fails(self):
-        json_data = '''
-        {
-            "expiration": "2007-12-01T12:00:00.000Z",
-            "conditions": [
-                {"success_action_status": "100"}
-            ]
-        }
-        '''
-        data = json.loads(json_data)
-        serializer = self.serializer_class(data=data)
-        serializer.required_conditions = []
-        serializer.optional_conditions = ['success_action_status']
-        expected = ['success_action_status should be between 200 and 399']
-        self.assertEquals(serializer.errors['conditions.success_action_status'], expected)
-
-        json_data = '''
-        {
-            "expiration": "2007-12-01T12:00:00.000Z",
-            "conditions": [
-                {"success_action_status": 400}
-            ]
-        }
-        '''
-        data = json.loads(json_data)
-        serializer = self.serializer_class(data=data)
-        serializer.required_conditions = []
-        serializer.optional_conditions = ['success_action_status']
-        expected = ['success_action_status should be between 200 and 399']
-        self.assertEquals(serializer.errors['conditions.success_action_status'], expected)
-
-        json_data = '''
-        {
-            "expiration": "2007-12-01T12:00:00.000Z",
-            "conditions": [
-                {"success_action_status": "1.2"}
-            ]
-        }
-        '''
-        data = json.loads(json_data)
-        serializer = self.serializer_class(data=data)
-        serializer.required_conditions = []
-        serializer.optional_conditions = ['success_action_status']
-        expected = ['Invalid success_action_status']
-        self.assertEquals(serializer.errors['conditions.success_action_status'], expected)
-
-    def test_that_serialize_with_invalid_key_fails(self):
-        json_data = '''
-        {
-            "expiration": "2007-12-01T12:00:00.000Z",
-            "conditions": [
-                {"key": 123}
-            ]
-        }
-        '''
-        data = json.loads(json_data)
-        serializer = self.serializer_class(data=data)
-        serializer.required_conditions = []
-        serializer.optional_conditions = ['key']
-        expected = ['Key should be a string']
-        self.assertEquals(serializer.errors['conditions.key'], expected)
-
-    def test_that_serialize_with_invalid_filename_fails(self):
-        json_data = '''
-        {
-            "expiration": "2007-12-01T12:00:00.000Z",
-            "conditions": [
-                {"x-amz-meta-qqfilename": "foo/bar\\baz.jpg"}
-            ]
-        }
-        '''
-        data = json.loads(json_data)
-        serializer = self.serializer_class(data=data)
-        serializer.required_conditions = []
-        serializer.optional_conditions = ['x-amz-meta-qqfilename']
-        expected = ['Invalid character in x-amz-meta-qqfilename']
-        self.assertEquals(serializer.errors['conditions.x-amz-meta-qqfilename'], expected)

@@ -37,4 +37,4 @@ def check_permissions(user, upload_policy):
     if upload_policy['acl'].value != 'private':
         raise PermissionDenied(_("ACL should be 'private'"))
     if upload_policy['bucket'].value != upload_bucket():
-        raise PermissionDenied(_("Upload bucket should be %s" % upload_bucket()))
+        raise PermissionDenied(_("Bucket should be '%s'" % upload_bucket()))
