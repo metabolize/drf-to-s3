@@ -1,11 +1,11 @@
-class UploadPolicy(object):
+class Policy(object):
     '''
     Encapsulates a policy document for an S3 POST request.
 
     http://docs.aws.amazon.com/AmazonS3/latest/dev/HTTPPOSTForms.html#HTTPPOSTConstructPolicy
 
     expiration: The policy expiration date, a native datetime.datetime object
-    conditions: A list of UploadPolicyCondition objects
+    conditions: A list of PolicyCondition objects
     
     '''
     expiration = None
@@ -15,10 +15,20 @@ class UploadPolicy(object):
         self.expiration = kwargs.get('expiration')
         self.conditions = kwargs.get('conditions')
 
+    def __getattr__(self, element_name):
+        '''
+        Return the condition matching the given element name.
+        Raises AttributeError if there is no matching condition.
 
-class UploadPolicyCondition(object):
+        '''
+        try:
+            return next(item for item in self.conditions if item.element_name == element_name)
+        except StopIteration:
+            raise AttributeError('No matching condition')
+
+class PolicyCondition(object):
     '''
-    Encapsulates a condition on an UploadPolicy.
+    Encapsulates a condition on a Policy.
 
     operator: The operator, which is optional. Either 'eq', 'starts-with', or None.
     element_name: The name of the element. A string, required.

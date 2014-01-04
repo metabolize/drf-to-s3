@@ -1,16 +1,17 @@
 import datetime, json, mock, unittest
 from django.core.exceptions import ValidationError
 from rest_framework.parsers import JSONParser
-from drf_to_s3.models import UploadPolicy, UploadPolicyCondition
-from drf_to_s3.serializers import UploadPolicyConditionField, BaseUploadPolicySerializer, FineUploaderPolicySerializer
+from drf_to_s3.models import Policy, PolicyCondition
+from drf_to_s3.serializers import NaivePolicySerializer, FinePolicySerializer
 
-class UploadPolicyConditionFieldSerializationTest(unittest.TestCase):
+class NaivePolicyConditionFieldTest(unittest.TestCase):
 
     def setUp(self):
-        self.field = UploadPolicyConditionField()
+        from drf_to_s3.serializers import NaivePolicyConditionField
+        self.field = NaivePolicyConditionField()
 
     def test_starts_with(self):
-        cond = UploadPolicyCondition(
+        cond = PolicyCondition(
             operator='starts-with',
             element_name='key',
             value='user/eric/'
@@ -20,7 +21,7 @@ class UploadPolicyConditionFieldSerializationTest(unittest.TestCase):
         self.assertEquals(result, expected)
 
     def test_eq(self):
-        cond = UploadPolicyCondition(
+        cond = PolicyCondition(
             operator='eq',
             element_name='acl',
             value='public-read'
@@ -30,7 +31,7 @@ class UploadPolicyConditionFieldSerializationTest(unittest.TestCase):
         self.assertEquals(result, expected)
 
     def test_no_oper(self):
-        cond = UploadPolicyCondition(
+        cond = PolicyCondition(
             element_name='acl',
             value='public-read'
         )
@@ -39,7 +40,7 @@ class UploadPolicyConditionFieldSerializationTest(unittest.TestCase):
         self.assertEquals(result, expected)
 
     def test_range(self):
-        cond = UploadPolicyCondition(
+        cond = PolicyCondition(
             element_name='content-length-range',
             value_range=[1048579, 10485760]
         )
@@ -47,15 +48,16 @@ class UploadPolicyConditionFieldSerializationTest(unittest.TestCase):
         expected = ['content-length-range', 1048579, 10485760]
         self.assertEquals(result, expected)
 
-class UploadPolicyConditionFieldDeserializationTest(unittest.TestCase):
+class PolicyConditionFieldDeserializationTest(unittest.TestCase):
 
     def setUp(self):
-        self.field = UploadPolicyConditionField()      
+        from drf_to_s3.serializers import NaivePolicyConditionField
+        self.field = NaivePolicyConditionField()      
 
     def test_starts_with(self):
         cond = [ "starts-with", "$key", "user/eric/" ]
         result = self.field.from_native(cond)
-        self.assertIsInstance(result, UploadPolicyCondition)
+        self.assertIsInstance(result, PolicyCondition)
         self.assertEquals(result.operator, 'starts-with')
         self.assertEquals(result.element_name, 'key'),
         self.assertEquals(result.value, 'user/eric/')
@@ -64,7 +66,7 @@ class UploadPolicyConditionFieldDeserializationTest(unittest.TestCase):
     def test_eq(self):
         cond = [ "eq", "$acl", "public-read" ]
         result = self.field.from_native(cond)
-        self.assertIsInstance(result, UploadPolicyCondition)
+        self.assertIsInstance(result, PolicyCondition)
         self.assertEquals(result.operator, 'eq')
         self.assertEquals(result.element_name, 'acl'),
         self.assertEquals(result.value, 'public-read')
@@ -73,7 +75,7 @@ class UploadPolicyConditionFieldDeserializationTest(unittest.TestCase):
     def test_range(self):
         cond = [ "content-length-range", 1048579, 10485760 ]
         result = self.field.from_native(cond)
-        self.assertIsInstance(result, UploadPolicyCondition)
+        self.assertIsInstance(result, PolicyCondition)
         self.assertIsNone(result.operator)
         self.assertEquals(result.element_name, 'content-length-range'),
         self.assertIsNone(result.value)
@@ -122,7 +124,7 @@ class UploadPolicyConditionFieldDeserializationTest(unittest.TestCase):
     def test_dict(self):
         cond = {"acl": "public-read" }
         result = self.field.from_native(cond)
-        self.assertIsInstance(result, UploadPolicyCondition)
+        self.assertIsInstance(result, PolicyCondition)
         self.assertIsNone(result.operator)
         self.assertEquals(result.element_name, 'acl')
         self.assertEquals(result.value, 'public-read')
@@ -160,13 +162,13 @@ class UploadPolicyConditionFieldDeserializationTest(unittest.TestCase):
         self.assertEquals(exception.params['condition'], cond)
 
 
-class BaseUploadPolicySerializerTest(unittest.TestCase):
+class NaivePolicySerializerTest(unittest.TestCase):
 
-    class MySerializer(BaseUploadPolicySerializer):
+    class TestSerializer(NaivePolicySerializer):
         allowed_buckets = ['janesmith', 'johnsmith']
 
     def setUp(self):
-        self.serializer_class = self.MySerializer
+        self.serializer_class = self.TestSerializer
 
     def test_that_serialize_with_bucket_and_key_succeeds(self):
         json_data = '''
@@ -432,7 +434,7 @@ class BaseUploadPolicySerializerTest(unittest.TestCase):
 
 class FineUploaderPolicySerializerTest(unittest.TestCase):
 
-    class MySerializer(FineUploaderPolicySerializer):
+    class MySerializer(FinePolicySerializer):
         allowed_buckets = ['my-bucket']
 
     def setUp(self):

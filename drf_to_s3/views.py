@@ -18,10 +18,10 @@ class FineUploaderSignUploadPolicyView(APIView):
     '''
     from rest_framework.parsers import JSONParser
     from rest_framework.renderers import JSONRenderer
-    from drf_to_s3.serializers import FineUploaderPolicySerializer
+    from drf_to_s3.serializers import FinePolicySerializer
 
     expire_after_seconds = 300
-    serializer_class = FineUploaderPolicySerializer
+    serializer_class = FinePolicySerializer
     parser_classes = (JSONParser,)
     renderer_classes = (JSONRenderer,)
 

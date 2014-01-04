@@ -3,15 +3,15 @@ from django.core.exceptions import ValidationError
 from django.utils.translation import ugettext as _
 
 
-class UploadPolicyConditionField(serializers.RelatedField):
+class NaivePolicyConditionField(serializers.RelatedField):
     '''
-    Serializes an UploadPolicyCondition instance to a list
+    Serializes a PolicyCondition instance to a list
     or dictionary, and vice versa.
 
     It doesn't know about the schema, only about the array
     and dictionary representations. Accordingly, it raises
     ValidationError for malformed arrays and dictionaries,
-    but BaseUploadPolicySerializer is responsible for
+    but NaiveUploadPolicySerializer is responsible for
     checking that, for example, that values for
     content-length-range are numeric, that element names
     are in the schema, and that required elements like
@@ -69,7 +69,7 @@ class UploadPolicyConditionField(serializers.RelatedField):
           - value_range: [1048579, 10485760] or None
         '''
         from numbers import Number
-        from drf_to_s3.models import UploadPolicyCondition
+        from drf_to_s3.models import PolicyCondition
         original_condition_list = condition_list # We use this for error reporting
         condition_list = list(condition_list)
         for item in condition_list:
@@ -118,7 +118,7 @@ class UploadPolicyConditionField(serializers.RelatedField):
                 _('Too many values in condition array: %(condition)s'),
                 params={'condition': original_condition_list},
             )
-        return UploadPolicyCondition(
+        return PolicyCondition(
             operator=operator,
             element_name=element_name,
             value=value,
@@ -130,7 +130,7 @@ class UploadPolicyConditionField(serializers.RelatedField):
         {"bucket": "name-of-bucket"}
         '''
         from numbers import Number
-        from drf_to_s3.models import UploadPolicyCondition
+        from drf_to_s3.models import PolicyCondition
         if len(condition_dict) > 1:
             raise ValidationError(
                 _('Too many values in condition dictionary: %(condition)s'),
@@ -141,7 +141,7 @@ class UploadPolicyConditionField(serializers.RelatedField):
             raise ValidationError(
                 _('Values in condition dictionaries should be numbers or strings'),
             )
-        return UploadPolicyCondition(
+        return PolicyCondition(
             operator=None,
             element_name=element_name,
             value=value,
@@ -149,7 +149,7 @@ class UploadPolicyConditionField(serializers.RelatedField):
         )
 
 
-class BaseUploadPolicySerializer(serializers.Serializer):
+class NaivePolicySerializer(serializers.Serializer):
     '''
     Serializes an UploadPolicy instance to a dictionary, and
     vice versa.
@@ -199,7 +199,7 @@ class BaseUploadPolicySerializer(serializers.Serializer):
     '''
     from django.db.models.query import EmptyQuerySet
     expiration = serializers.DateTimeField(required=False, format='%Y-%m-%dT%H:%M:%SZ')
-    conditions = UploadPolicyConditionField(
+    conditions = NaivePolicyConditionField(
         many=True,
         read_only=False,
         required=False,
@@ -235,8 +235,8 @@ class BaseUploadPolicySerializer(serializers.Serializer):
         return getattr(settings, 'AWS_UPLOAD_SUCCESS_ACTION_REDIRECT_VALUES', [])
 
     def restore_object(self, attrs, instance=None):
-        from drf_to_s3.models import UploadPolicy
-        return UploadPolicy(**attrs)
+        from drf_to_s3.models import Policy
+        return Policy(**attrs)
 
     def validate_expiration(self, attrs, source):
         '''
@@ -443,9 +443,9 @@ class LimitKeyToUrlCharactersMixin(object):
             )
 
 
-class DefaultUploadPolicySerializer(
+class DefaultPolicySerializer(
     LimitKeyToUrlCharactersMixin,
-    BaseUploadPolicySerializer
+    NaivePolicySerializer
 ):
     '''
     Subclass this one.
@@ -456,7 +456,7 @@ class DefaultUploadPolicySerializer(
     pass
 
 
-class FineUploaderPolicySerializer(DefaultUploadPolicySerializer):
+class FinePolicySerializer(DefaultPolicySerializer):
     '''
     To be more paranoid, subclass this one. It's tailored to the
     annotated policy document given by Fine Uploader. It requires

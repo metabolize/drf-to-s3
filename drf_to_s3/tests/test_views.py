@@ -7,16 +7,17 @@ from rest_framework.test import APITestCase
 class FineUploaderPolicySerializerTest(APITestCase):
     from drf_to_s3.views import FineUploaderSignUploadPolicyView
 
-    class MyView(FineUploaderSignUploadPolicyView):
-        from drf_to_s3.serializers import FineUploaderPolicySerializer
-        class MySerializer(FineUploaderPolicySerializer):
+    class TestView(FineUploaderSignUploadPolicyView):
+        from drf_to_s3.serializers import FinePolicySerializer
+
+        class TestSerializer(FinePolicySerializer):
             allowed_buckets = ['my-bucket']
 
-        serializer_class = MySerializer
+        serializer_class = TestSerializer
         aws_secret_access_key = '12345'
 
     urls = patterns('',
-        url(r'^s3/sign/$', MyView.as_view()),
+        url(r'^s3/sign/$', TestView.as_view()),
     )
 
     def setUp(self):
