@@ -154,6 +154,26 @@ class DefaultPolicySerializerTest(unittest.TestCase):
         expected = ['Key should be a string']
         self.assertEquals(serializer.errors['conditions.key'], expected)
 
+    def test_that_serialize_with_space_in_filename_succeeds(self):
+        json_data = '''
+        {
+            "expiration": "2007-12-01T12:00:00.000Z",
+            "conditions": [
+                {"acl": "public-read"},
+                {"bucket": "my-bucket"},
+                {"Content-Type": "image/jpeg"},
+                {"success_action_status": 200},
+                {"success_action_redirect": "http://example.com/foo/bar"},
+                {"key": "/foo/bar/baz.jpg"},
+                {"x-amz-meta-qqfilename": "/foo/bar/baz baz.jpg"},
+                ["content-length-range", 1024, 10240]
+            ]
+        }
+        '''
+        data = json.loads(json_data)
+        serializer = self.serializer_class(data=data)
+        self.assertTrue(serializer.is_valid())
+
     def test_that_serialize_with_invalid_filename_fails(self):
         json_data = '''
         {
@@ -167,7 +187,7 @@ class DefaultPolicySerializerTest(unittest.TestCase):
         serializer = self.serializer_class(data=data)
         serializer.required_conditions = []
         serializer.optional_conditions = ['x-amz-meta-qqfilename']
-        expected = ['Invalid character in x-amz-meta-qqfilename']
+        expected = ['Filename should not include fancy characters']
         self.assertEquals(serializer.errors['conditions.x-amz-meta-qqfilename'], expected)
 
     def test_that_serialize_with_invalid_bucket_fails(self):

@@ -31,25 +31,13 @@ def string_is_valid_media_type(string_value):
     allowed_characters = "!#$&.+-^_" + string.ascii_letters + string.digits
     return all([char in allowed_characters for char in first + rest])
 
-# def validate_filename(string_value):
-#     '''
-#     - Filenames shouldn't start with a space
-#     - Filenames should not contain null character
-#     Return False if string_value contains unreasonable filename
-#     characters
-#     '''
-
-# # pound < left angle bracket    $ dollar sign   + plus sign
-# % percent   > right angle bracket   ! exclamation point ` backtick
-# amp asterisk single quote pipe
-# { left bracket  ? question mark "" double quotes = equal sign
-# } right bracket / forward slash : colon  
-# \ back slash    blank spaces    @ at sign    
- 
-
-# Also, keep these rules in mind.
-
-# Don't start or end your filename with a space, period, hyphen, or underline.
-# Keep your filenames to a reasonable length and be sure they are under 31 characters.
-# Most operating systems are case sensitive; always use lowercase.
-# Avoid using spaces and underscores; use a hyphen instead.
+def string_is_valid_filename(string_value):
+    '''
+    - Filenames shouldn't start with a space
+    - Filenames should not contain null character
+    - Filenames shouldn't contain unprintable characters
+    - Filenames shouldn't contain non-ASCII characters
+    '''
+    import string
+    allowed_characters = ' ' + string.printable
+    return all([char in allowed_characters for char in string_value])

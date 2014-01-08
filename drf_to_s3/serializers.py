@@ -125,9 +125,9 @@ class DefaultPolicySerializer(naive_serializers.NaivePolicySerializer):
         Require that x-amz-meta-qqfilename is a string containing
         only URL characters.
         '''
-        from .util import string_contains_only_url_characters
+        from .util import string_is_valid_filename
         if (not isinstance(condition.value, basestring) or
-            not string_contains_only_url_characters(condition.value)):
+            not string_is_valid_filename(condition.value)):
             raise ValidationError(
-                _('Invalid character in x-amz-meta-qqfilename'),
+                _('Filename should not include fancy characters'),
             )
