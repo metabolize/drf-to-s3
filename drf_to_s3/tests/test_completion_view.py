@@ -145,7 +145,4 @@ class TestCompletionViewSessionAuth(APITestCase):
         content = json.loads(resp.content)
         self.assertTrue(content['error'].startswith('Key should start with'))
 
-    def test_with_missing_session(self):
-        pass
-
 TestCompletionViewSessionAuth = override_settings(**TestCompletionViewSessionAuth.override_settings)(TestCompletionViewSessionAuth)

@@ -169,8 +169,8 @@ class FineUploadCompletionView(FineUploaderErrorResponseMixin, APIView):
         with 200 status and an `error` key set.
         http://blog.fineuploader.com/2013/08/16/fine-uploader-s3-upload-directly-to-amazon-s3-from-your-browser/#success-endpoint
 
-        make_error_response will do this for you if you pass
-        compatibility_for_iframe=True
+        make_error_response will do this with
+        compatibility_for_iframe=True.
 
         Any other content you provide in the response is passed
         to the `complete` handler on the client.
