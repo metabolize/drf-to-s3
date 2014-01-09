@@ -152,7 +152,7 @@ class FineUploadCompletionView(FineUploaderErrorResponseMixin, APIView):
             dst_key=self.nonexisting_key
         )
 
-    def handle_upload(self, request, bucket, key, uuid, name, etag):
+    def handle_upload(self, request, bucket, key, uuid, name):
         '''
         Subclasses should override, to provide handling for the
         successful upload.
@@ -187,6 +187,13 @@ class FineUploadCompletionView(FineUploaderErrorResponseMixin, APIView):
         user, to prevent a malicious user from using this
         callback to hijack someone else's upload.
 
+        Note: To avoid the need to configure the client to
+        produce the prefixed upload URL, I'd rather
+        prevent highjacking (due to vulnerable uuid
+        generation) by having the client send the
+        etag (which S3 provides to the client after a
+        successful upload) in the completion handler.
+
         '''
         import os, uuid
         from rest_framework import status
@@ -199,7 +206,6 @@ class FineUploadCompletionView(FineUploaderErrorResponseMixin, APIView):
             s3.copy(
                 src_bucket=bucket,
                 src_key=key,
-                etag=etag,
                 dst_bucket=self.get_aws_storage_bucket(),
                 dst_key=new_key
             )

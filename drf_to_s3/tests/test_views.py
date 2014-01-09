@@ -132,7 +132,6 @@ class TestCompletionView(APITestCase):
         copy.assert_called_once_with(
             src_bucket=notification['bucket'],
             src_key=notification['key'],
-            etag=notification['etag'],
             dst_bucket='my-storage-bucket',
             dst_key=new_key
         )
@@ -152,7 +151,6 @@ class TestCompletionView(APITestCase):
         copy.assert_called_once_with(
             src_bucket=notification['bucket'],
             src_key=notification['key'],
-            etag=notification['etag'],
             dst_bucket='my-storage-bucket',
             dst_key=new_key + '.txt'
         )

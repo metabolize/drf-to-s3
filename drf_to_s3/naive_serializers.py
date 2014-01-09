@@ -223,4 +223,3 @@ class FineUploadCompletionSerializer(serializers.Serializer):
     key = serializers.CharField()
     uuid = serializers.CharField()
     name = serializers.CharField()
-    etag = serializers.CharField()

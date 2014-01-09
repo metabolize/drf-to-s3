@@ -42,11 +42,12 @@ class ObjectNotFoundException(APIException):
     detail = _('Invalid key or bad ETag')
 
 
-def copy(src_bucket, src_key, etag, dst_bucket, dst_key):
+def copy(src_bucket, src_key, dst_bucket, dst_key, src_etag=None, validate_src_etag=False):
     '''
-    Copy a key, with a given etag, from one bucket to another.
+    Copy a key from one bucket to another.
 
-    Raises ObjectNotFoundException if the key does not exist
+    If validate_etag is True, the ETag must match. Raises
+    ObjectNotFoundException if the key does not exist,
     or the ETag doesn't match.
 
     We return the same error in either case, since a mismatched
@@ -60,12 +61,18 @@ def copy(src_bucket, src_key, etag, dst_bucket, dst_key):
     from boto.exception import S3ResponseError
     conn = boto.connect_s3()
     bucket = conn.get_bucket(dst_bucket)
+    if validate_src_etag:
+        headers = {
+            'x-amz-copy-source-if-match': src_etag,
+        }
+    else:
+        headers = {}
     try:
         bucket.copy_key(
             new_key_name=dst_key,
             src_bucket_name=src_bucket,
             src_key_name=src_key,
-            headers={'x-amz-copy-source-if-match': etag}
+            headers=headers
         )
     except S3ResponseError as e:
         if e.status in [status.HTTP_404_NOT_FOUND, status.HTTP_412_PRECONDITION_FAILED]:

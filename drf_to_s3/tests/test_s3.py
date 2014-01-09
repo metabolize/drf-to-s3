@@ -28,16 +28,16 @@ class S3Test(unittest.TestCase):
 
     def test_copy_succeeds(self):
         from drf_to_s3 import s3
-        new_key = str(uuid.uuid4()) + '.txt'
         s3.copy(
             src_bucket=self.bucket_name,
             src_key=self.existing_key,
-            etag=self.existing_key_etag,
             dst_bucket=self.bucket,
-            dst_key=self.nonexisting_key
+            dst_key=self.nonexisting_key,
+            src_etag=self.existing_key_etag,
+            validate_src_etag=True
         )
 
-    def test_copy_fails_after_subsequent_update(self):
+    def test_copy_fails_with_mismatched_etag_after_subsequent_update(self):
         from boto.s3.key import Key
         from drf_to_s3 import s3
 
@@ -45,15 +45,30 @@ class S3Test(unittest.TestCase):
         k.key = self.existing_key
         k.set_contents_from_string('Another test')
 
-        new_key = str(uuid.uuid4()) + '.txt'
         with self.assertRaises(s3.ObjectNotFoundException):
             s3.copy(
                 src_bucket=self.bucket_name,
                 src_key=self.existing_key,
-                etag=self.existing_key_etag,
                 dst_bucket=self.bucket_name,
-                dst_key=self.nonexisting_key
+                dst_key=self.nonexisting_key,
+                src_etag=self.existing_key_etag,
+                validate_src_etag=True
             )
+
+    def test_copy_succeeds_without_etag_validation_after_subsequent_update(self):
+        from boto.s3.key import Key
+        from drf_to_s3 import s3
+
+        k = Key(self.bucket)
+        k.key = self.existing_key
+        k.set_contents_from_string('Another test')
+
+        s3.copy(
+            src_bucket=self.bucket_name,
+            src_key=self.existing_key,
+            dst_bucket=self.bucket_name,
+            dst_key=self.nonexisting_key
+        )
 
     def test_copy_fails_on_nonexistent_key(self):
         from drf_to_s3 import s3
@@ -62,7 +77,8 @@ class S3Test(unittest.TestCase):
             s3.copy(
                 src_bucket=self.bucket_name,
                 src_key=another_nonexisting_key,
-                etag=self.existing_key_etag,
                 dst_bucket=self.bucket_name,
-                dst_key=self.nonexisting_key
+                dst_key=self.nonexisting_key,
+                src_etag=self.existing_key_etag,
+                validate_src_etag=True
             )
