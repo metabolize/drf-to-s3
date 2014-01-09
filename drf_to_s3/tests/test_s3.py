@@ -5,15 +5,18 @@ class S3Test(unittest.TestCase):
     bucket_name = 'bodylabs-test'
 
     def setUp(self):
-        import boto
+        import boto, os
         from boto.exception import NoAuthHandlerFound
         from boto.s3.key import Key
 
+        keys = ['AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY']
         try:
-            conn = boto.connect_s3()
-        except NoAuthHandlerFound:
-            self.skipTest('To test s3, set AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY in .env')
-        
+            for k in keys:
+                os.environ[k]
+        except KeyError:
+            self.skipTest('To test s3, set %s in .env' % ' and '.join(keys))
+
+        conn = boto.connect_s3()        
         bucket = conn.get_bucket(self.bucket_name)
         k = Key(bucket)
         k.key = "%s%s.txt" % (str(uuid.uuid4()), self.prefix)
