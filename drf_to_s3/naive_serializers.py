@@ -218,8 +218,9 @@ class NaivePolicySerializer(serializers.Serializer):
             return attrs
 
 
-class FineUploadNotificationSerializer(serializers.Serializer):
+class FineUploadCompletionSerializer(serializers.Serializer):
     bucket = serializers.CharField()
     key = serializers.CharField()
     uuid = serializers.CharField()
     name = serializers.CharField()
+    etag = serializers.CharField()

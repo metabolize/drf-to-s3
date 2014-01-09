@@ -3,8 +3,23 @@ from rest_framework.decorators import api_view, renderer_classes
 from rest_framework.renderers import StaticHTMLRenderer
 from rest_framework.views import APIView
 
+class FineUploaderErrorResponseMixin(object):
 
-class FineSignPolicyView(APIView):
+    def make_error_response(self, request, serializer):
+        '''
+        This implementation is designed for Fine Uploader,
+        which expects `invalid: True`.
+        FIXME this should provide a user-readable 'error' message.
+        '''
+        from rest_framework import status
+        from rest_framework.response import Response
+        response = {
+            'invalid': True,
+            'errors': serializer.errors,
+        }
+        return Response(response, status=status.HTTP_400_BAD_REQUEST)
+
+class FineSignPolicyView(FineUploaderErrorResponseMixin, APIView):
     '''
     aws_secret_access_key: Your AWS secret access key, preferably
       for an account which only has put privileges. Subclasses
@@ -26,28 +41,14 @@ class FineSignPolicyView(APIView):
         from django.conf import settings
         return settings.AWS_UPLOAD_SECRET_ACCESS_KEY
 
-    def make_error_response(self, request, serializer):
-        '''
-        This implementation is designed for Fine Uploader,
-        which expects `invalid: True`.
-        FIXME this should provide a user-readable 'error' message.
-        '''
-        from rest_framework import status
-        from rest_framework.response import Response
-        response = {
-            'invalid': True,
-            'errors': serializer.errors,
-        }
-        return Response(response, status=status.HTTP_400_BAD_REQUEST)
-
     def check_policy_permissions(self, request, upload_policy):
         '''
         Given a valid upload policy, check that the user
         has permission to upload to the given bucket,
         path, etc.
         '''
-        from drf_to_s3.access_control import check_permissions
-        check_permissions(request.user, upload_policy)
+        from drf_to_s3.access_control import check_policy_permissions
+        check_policy_permissions(request.user, upload_policy)
 
     def pre_sign(self, upload_policy):
         '''
@@ -95,24 +96,60 @@ def empty_html(request):
 #     return HttpResponse('', content_type='text/html')
 
 
-class FineUploaderUploadNotificationView(APIView):
+class FineUploadCompletionView(FineUploaderErrorResponseMixin, APIView):
     '''
     Handle the upload complete notification from the
-    client. You can subclass this and override
-    handle_upload to handle the notification or to
-    return additional information to the client.
+    client.
+
+    Designed for use with a separate upload folder or
+    separate bucket, so it also copies the file to the
+    staging bucket.
+
+    You can subclass this and override handle_upload to
+    copy the file to the staging bucket (since the
+    upload goes to a temporary path), create any
+    necessary objects on the server, or return
+    additional information to the client.
 
     '''
     from rest_framework.parsers import FormParser
     from rest_framework.renderers import JSONRenderer
+    from drf_to_s3.naive_serializers import FineUploadCompletionSerializer
 
     parser_classes = (FormParser,)
     renderer_classes = (JSONRenderer,)
+    serializer_class = FineUploadCompletionSerializer
 
-    def handle_upload(self, request, bucket, key, uuid, name):
+    def check_upload_permissions(self, request, obj):
+        '''
+        Check a deserialized request, check that the user has
+        permission to upload to the given bucket and key.
+
+        '''
+        from drf_to_s3.access_control import check_upload_permissions
+        check_upload_permissions(request.user, obj['bucket'], obj['key'])
+
+    def copy_upload_to_storage(self, request, bucket, key, uuid, name, etag):
+        '''
+        '''
+        import uuid as _uuid
+        from drf_to_s3 import s3
+        target
+        s3.copy(
+            src_bucket=bucket,
+            src_key=key,
+            etag=etag,
+            dst_bucket=self.bucket,
+            dst_key=self.nonexisting_key
+        )
+
+    def handle_upload(self, request, bucket, key, uuid, name, etag):
         '''
         Subclasses should override, to provide handling for the
         successful upload.
+
+        Subclasses may invoke invoke copy_upload_to_storage()
+        to use the default logic, or use their own.
 
         Return a response with status=status.HTTP_200_OK.
 
@@ -120,6 +157,7 @@ class FineUploaderUploadNotificationView(APIView):
         Under IE9 and IE8, you must return a 200 status with
         `error` set, or else Fine Uploader can only display
         a generic error message.
+        http://blog.fineuploader.com/2013/08/16/fine-uploader-s3-upload-directly-to-amazon-s3-from-your-browser/#success-endpoint
 
         Any other content you provide in the response is passed
         to the `complete` handler on the client.
@@ -137,21 +175,38 @@ class FineUploaderUploadNotificationView(APIView):
         callback to hijack someone else's upload.
 
         '''
+        import os, uuid
+        from django.conf import settings
         from rest_framework import status
         from rest_framework.response import Response
+        from drf_to_s3 import s3
+
+        basename, ext = os.path.splitext(name)
+        new_key = str(uuid.uuid4()) + ext
+        s3.copy(
+            src_bucket=bucket,
+            src_key=key,
+            etag=etag,
+            dst_bucket=settings.AWS_STORAGE_BUCKET_NAME,
+            dst_key=new_key
+        )
+
         return Response(status=status.HTTP_200_OK)
 
     def post(self, request, format=None):
         from rest_framework import status
         from rest_framework.response import Response
-        from drf_to_s3.naive_serializers import FineUploadNotificationSerializer
-        serializer = FineUploadNotificationSerializer(data=request.DATA)
+
+        serializer = self.serializer_class(data=request.DATA)
         if not serializer.is_valid():
             response = {
                 'error': 'Malformed upload notification request',
                 'errors': serializer.errors,
             }
-            # Return 200 for better presentation of errors under IE9 and IE8
-            # http://blog.fineuploader.com/2013/08/16/fine-uploader-s3-upload-directly-to-amazon-s3-from-your-browser/#success-endpoint
+            # See note above about error code 200 and IE9/IE8
             return Response(response, status=status.HTTP_200_OK)
-        return self.handle_upload(request, **serializer.object)
+        obj = serializer.object
+
+        self.check_upload_permissions(request, obj)
+
+        return self.handle_upload(request, **obj)

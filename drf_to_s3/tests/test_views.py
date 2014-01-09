@@ -92,19 +92,49 @@ class TestEmptyHTMLView(APITestCase):
         self.assertEquals(resp.content, '')
 
 
-class TestUploadNotificationView(APITestCase):
-    from drf_to_s3.views import FineUploaderUploadNotificationView
+class TestCompletionView(APITestCase):
+    from drf_to_s3.views import FineUploadCompletionView
     urls = patterns('',
-        url(r'^s3/uploaded/$', FineUploaderUploadNotificationView.as_view()),
+        url(r'^s3/uploaded/$', FineUploadCompletionView.as_view()),
     )
 
-    def test_that_upload_notification_returns_success(self):
+    override_settings = {
+        'AWS_UPLOAD_SECRET_ACCESS_KEY': '12345',
+        'AWS_UPLOAD_BUCKET': 'my-upload-bucket',
+        'AWS_STORAGE_BUCKET_NAME': 'my-storage-bucket',
+    }
+
+    @mock.patch('drf_to_s3.s3.copy')
+    def test_that_upload_notification_returns_success(self, copy):
         notification = {
-            'bucket': 'my-bucket',
+            'bucket': 'my-upload-bucket',
             'key': '/foo/bar/baz',
             'uuid': '12345',
             'name': 'baz',
+            'etag': '67890',
         }
         resp = self.client.post('/s3/uploaded/', notification)
         self.assertEquals(resp.status_code, status.HTTP_200_OK)
         self.assertEquals(len(resp.content), 0)
+
+    @mock.patch('drf_to_s3.s3.copy')
+    @mock.patch('uuid.uuid4')
+    def test_that_upload_notification_copies_to_new_key(self, uuid4, copy):
+        uuid4.return_value = new_key = 'abcde'
+        notification = {
+            'bucket': 'my-upload-bucket',
+            'key': '/foo/bar/baz',
+            'uuid': '12345',
+            'name': 'baz',
+            'etag': '67890',
+        }
+        self.client.post('/s3/uploaded/', notification)
+        copy.assert_called_once_with(
+            src_bucket=notification['bucket'],
+            src_key=notification['key'],
+            etag=notification['etag'],
+            dst_bucket='my-storage-bucket',
+            dst_key=new_key
+        )
+
+TestCompletionView = override_settings(**TestCompletionView.override_settings)(TestCompletionView)

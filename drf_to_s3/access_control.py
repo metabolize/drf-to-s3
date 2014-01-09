@@ -24,7 +24,7 @@ def upload_prefix_for_user(user):
     else:
         return settings.S3_UPLOAD_KEY_PREFIX + user.username
 
-def check_permissions(user, upload_policy):
+def check_policy_permissions(user, upload_policy):
     '''
     Check permissions on the given upload policy. Raises
     rest_framework.exceptions.PermissionDenied in case
@@ -41,5 +41,19 @@ def check_permissions(user, upload_policy):
     from rest_framework.exceptions import PermissionDenied
     if upload_policy['acl'].value != 'private':
         raise PermissionDenied(_("ACL should be 'private'"))
-    if upload_policy['bucket'].value != upload_bucket():
+    check_upload_permissions(
+        user=user,
+        bucket=upload_policy['bucket'].value,
+        key=upload_policy['key'].value
+    )
+
+def check_upload_permissions(user, bucket, key):
+    '''
+    Check permissions on the given upload policy. Raises
+    rest_framework.exceptions.PermissionDenied in case
+    of error.
+
+    '''
+    from rest_framework.exceptions import PermissionDenied
+    if bucket != upload_bucket():
         raise PermissionDenied(_("Bucket should be '%s'" % upload_bucket()))
