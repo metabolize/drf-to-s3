@@ -19,6 +19,7 @@ class FineUploaderErrorResponseMixin(object):
         }
         return Response(response, status=status.HTTP_400_BAD_REQUEST)
 
+
 class FineSignPolicyView(FineUploaderErrorResponseMixin, APIView):
     '''
     aws_secret_access_key: Your AWS secret access key, preferably
@@ -120,6 +121,10 @@ class FineUploadCompletionView(FineUploaderErrorResponseMixin, APIView):
     renderer_classes = (JSONRenderer,)
     serializer_class = FineUploadCompletionSerializer
 
+    def get_aws_storage_bucket(self):
+        from django.conf import settings
+        return settings.AWS_STORAGE_BUCKET_NAME
+
     def check_upload_permissions(self, request, obj):
         '''
         Check a deserialized request, check that the user has
@@ -176,7 +181,6 @@ class FineUploadCompletionView(FineUploaderErrorResponseMixin, APIView):
 
         '''
         import os, uuid
-        from django.conf import settings
         from rest_framework import status
         from rest_framework.response import Response
         from drf_to_s3 import s3
@@ -187,7 +191,7 @@ class FineUploadCompletionView(FineUploaderErrorResponseMixin, APIView):
             src_bucket=bucket,
             src_key=key,
             etag=etag,
-            dst_bucket=settings.AWS_STORAGE_BUCKET_NAME,
+            dst_bucket=self.get_aws_storage_bucket(),
             dst_key=new_key
         )
 

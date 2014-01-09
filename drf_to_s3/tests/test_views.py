@@ -137,4 +137,24 @@ class TestCompletionView(APITestCase):
             dst_key=new_key
         )
 
+    @mock.patch('drf_to_s3.s3.copy')
+    @mock.patch('uuid.uuid4')
+    def test_that_upload_notification_preserves_extension_for_new_key(self, uuid4, copy):
+        uuid4.return_value = new_key = 'abcde'
+        notification = {
+            'bucket': 'my-upload-bucket',
+            'key': '/foo/bar/baz',
+            'uuid': '12345',
+            'name': 'baz.txt',
+            'etag': '67890',
+        }
+        self.client.post('/s3/uploaded/', notification)
+        copy.assert_called_once_with(
+            src_bucket=notification['bucket'],
+            src_key=notification['key'],
+            etag=notification['etag'],
+            dst_bucket='my-storage-bucket',
+            dst_key=new_key + '.txt'
+        )
+
 TestCompletionView = override_settings(**TestCompletionView.override_settings)(TestCompletionView)
