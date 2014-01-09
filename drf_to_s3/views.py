@@ -5,7 +5,7 @@ from rest_framework.views import APIView
 
 class FineUploaderErrorResponseMixin(object):
 
-    def make_error_response(self, request, serializer):
+    def make_error_response(self, request, serializer=None, message=None, compatibility_for_iframe=False):
         '''
         This implementation is designed for Fine Uploader,
         which expects `invalid: True`.
@@ -15,9 +15,13 @@ class FineUploaderErrorResponseMixin(object):
         from rest_framework.response import Response
         response = {
             'invalid': True,
-            'errors': serializer.errors,
         }
-        return Response(response, status=status.HTTP_400_BAD_REQUEST)
+        if message is not None:
+            response['error'] = message
+        if serializer is not None:
+            response['errors'] = serializer.errors
+        status = status.HTTP_200_OK if compatibility_for_iframe else status.HTTP_400_BAD_REQUEST
+        return Response(response, status=status)
 
 
 class FineSignPolicyView(FineUploaderErrorResponseMixin, APIView):
@@ -66,7 +70,7 @@ class FineSignPolicyView(FineUploaderErrorResponseMixin, APIView):
 
         request_serializer = self.serializer_class(data=request.DATA)
         if not request_serializer.is_valid():
-            return self.make_error_response(request, request_serializer)
+            return self.make_error_response(request, serializer=request_serializer)
         upload_policy = request_serializer.object
 
         self.check_policy_permissions(request, upload_policy)
@@ -164,6 +168,9 @@ class FineUploadCompletionView(FineUploaderErrorResponseMixin, APIView):
         a generic error message.
         http://blog.fineuploader.com/2013/08/16/fine-uploader-s3-upload-directly-to-amazon-s3-from-your-browser/#success-endpoint
 
+        make_error_response will do this for you if you pass
+        compatibility_for_iframe=True
+
         Any other content you provide in the response is passed
         to the `complete` handler on the client.
         http://docs.fineuploader.com/api/events.html#complete
@@ -173,6 +180,7 @@ class FineUploadCompletionView(FineUploaderErrorResponseMixin, APIView):
         key: Key name of the associated file in S3
         uuid: UUID of the file
         name: Name of the file
+        etag: The S3 etag of the S3 key
 
         Depending what you do with the uploaded file, you may
         need to validate that the request originated by this
@@ -187,13 +195,20 @@ class FineUploadCompletionView(FineUploaderErrorResponseMixin, APIView):
 
         basename, ext = os.path.splitext(name)
         new_key = str(uuid.uuid4()) + ext
-        s3.copy(
-            src_bucket=bucket,
-            src_key=key,
-            etag=etag,
-            dst_bucket=self.get_aws_storage_bucket(),
-            dst_key=new_key
-        )
+        try:
+            s3.copy(
+                src_bucket=bucket,
+                src_key=key,
+                etag=etag,
+                dst_bucket=self.get_aws_storage_bucket(),
+                dst_key=new_key
+            )
+        except s3.ObjectNotFoundException as e:
+            return self.make_error_response(
+                request=request,
+                message=e.detail,
+                compatibility_for_iframe=True
+            )
 
         return Response(status=status.HTTP_200_OK)
 
@@ -203,12 +218,11 @@ class FineUploadCompletionView(FineUploaderErrorResponseMixin, APIView):
 
         serializer = self.serializer_class(data=request.DATA)
         if not serializer.is_valid():
-            response = {
-                'error': 'Malformed upload notification request',
-                'errors': serializer.errors,
-            }
-            # See note above about error code 200 and IE9/IE8
-            return Response(response, status=status.HTTP_200_OK)
+            return self.make_error_response(
+                request=request,
+                serializer=serializer,
+                compatibility_for_iframe=True
+            )
         obj = serializer.object
 
         self.check_upload_permissions(request, obj)

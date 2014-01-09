@@ -157,4 +157,20 @@ class TestCompletionView(APITestCase):
             dst_key=new_key + '.txt'
         )
 
+    @mock.patch('drf_to_s3.s3.copy')
+    def test_that_upload_notification_returns_error_for_nonexistent_key(self, copy):
+        from drf_to_s3 import s3
+        copy.side_effect = s3.ObjectNotFoundException
+        notification = {
+            'bucket': 'my-upload-bucket',
+            'key': '/foo/bar/baz',
+            'uuid': '12345',
+            'name': 'baz.txt',
+            'etag': '67890',
+        }
+        resp = self.client.post('/s3/uploaded/', notification)
+        content = json.loads(resp.content)
+        self.assertTrue(content['invalid'])
+        self.assertEquals(content['error'], 'Invalid key or bad ETag')
+
 TestCompletionView = override_settings(**TestCompletionView.override_settings)(TestCompletionView)

@@ -1,5 +1,7 @@
 from rest_framework import status
 from rest_framework.exceptions import APIException
+from django.utils.translation import ugettext as _
+
 
 def sign_policy_document(policy_document, secret_key):
     '''
@@ -37,7 +39,7 @@ def validate_bucket_name(string_value):
 
 class ObjectNotFoundException(APIException):
     status_code = status.HTTP_400_BAD_REQUEST
-    detail = 'Invalid key or bad ETag'
+    detail = _('Invalid key or bad ETag')
 
 
 def copy(src_bucket, src_key, etag, dst_bucket, dst_key):
