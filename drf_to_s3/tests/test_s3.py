@@ -6,9 +6,14 @@ class S3Test(unittest.TestCase):
 
     def setUp(self):
         import boto
+        from boto.exception import NoAuthHandlerFound
         from boto.s3.key import Key
 
-        conn = boto.connect_s3()
+        try:
+            conn = boto.connect_s3()
+        except NoAuthHandlerFound:
+            self.skipTest('To test s3, set AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY in .env')
+        
         bucket = conn.get_bucket(self.bucket_name)
         k = Key(bucket)
         k.key = "%s%s.txt" % (str(uuid.uuid4()), self.prefix)
