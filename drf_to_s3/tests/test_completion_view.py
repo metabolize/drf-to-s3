@@ -15,6 +15,7 @@ class TestCompletionView(APITestCase):
     override_settings = {
         'AWS_UPLOAD_SECRET_ACCESS_KEY': '12345',
         'AWS_UPLOAD_BUCKET': 'my-upload-bucket',
+        'AWS_UPLOAD_PREFIX_FUNC': lambda x: 'uploads',
         'AWS_STORAGE_BUCKET_NAME': 'my-storage-bucket',
     }
 
@@ -22,7 +23,7 @@ class TestCompletionView(APITestCase):
     def test_that_upload_notification_returns_success(self, copy):
         notification = {
             'bucket': 'my-upload-bucket',
-            'key': '/foo/bar/baz',
+            'key': 'uploads/foo/bar/baz',
             'uuid': '12345',
             'name': 'baz',
             'etag': '67890',
@@ -37,7 +38,7 @@ class TestCompletionView(APITestCase):
         uuid4.return_value = new_key = 'abcde'
         notification = {
             'bucket': 'my-upload-bucket',
-            'key': '/foo/bar/baz',
+            'key': 'uploads/foo/bar/baz',
             'uuid': '12345',
             'name': 'baz',
             'etag': '67890',
@@ -56,7 +57,7 @@ class TestCompletionView(APITestCase):
         uuid4.return_value = new_key = 'abcde'
         notification = {
             'bucket': 'my-upload-bucket',
-            'key': '/foo/bar/baz',
+            'key': 'uploads/foo/bar/baz',
             'uuid': '12345',
             'name': 'baz.txt',
             'etag': '67890',
@@ -75,7 +76,7 @@ class TestCompletionView(APITestCase):
         copy.side_effect = s3.ObjectNotFoundException
         notification = {
             'bucket': 'my-upload-bucket',
-            'key': '/foo/bar/baz',
+            'key': 'uploads/foo/bar/baz',
             'uuid': '12345',
             'name': 'baz.txt',
             'etag': '67890',
