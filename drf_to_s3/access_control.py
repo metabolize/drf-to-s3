@@ -19,10 +19,11 @@ def upload_prefix_for_user(user):
 
     '''
     from django.conf import settings
-    if hasattr(settings, 'S3_UPLOAD_PREFIX_FUNC'):
-        return settings.S3_UPLOAD_PREFIX_FUNC(user)
-    else:
-        return settings.S3_UPLOAD_KEY_PREFIX + user.username
+    prefix_func = getattr(settings, 'S3_UPLOAD_PREFIX_FUNC', None)
+    if prefix_func is not None:
+        return prefix_func(user)
+    prefix = getattr(settings, 'S3_UPLOAD_KEY_PREFIX', '')
+    return prefix + user.username
 
 def check_policy_permissions(user, upload_policy):
     '''
@@ -54,6 +55,14 @@ def check_upload_permissions(user, bucket, key):
     of error.
 
     '''
+    from django.core.exceptions import ImproperlyConfigured
     from rest_framework.exceptions import PermissionDenied
     if bucket != upload_bucket():
         raise PermissionDenied(_("Bucket should be '%s'" % upload_bucket()))
+    upload_prefix = upload_prefix_for_user(user)
+    if upload_prefix is None or len(upload_prefix) == 0:
+        raise ImproperlyConfigured(
+            _('Upload prefix must be non-zero-length and should be unique for each user')
+        )
+    if not key.startswith(upload_prefix):
+        raise PermissionDenied(_("Key should start with '%s'" % upload_prefix))
