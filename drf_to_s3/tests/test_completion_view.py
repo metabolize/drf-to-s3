@@ -82,8 +82,70 @@ class TestCompletionView(APITestCase):
             'etag': '67890',
         }
         resp = self.client.post('/s3/uploaded/', notification)
+        self.assertEquals(resp.status_code, status.HTTP_200_OK) # for IE9/IE3
         content = json.loads(resp.content)
-        self.assertTrue(content['invalid'])
         self.assertEquals(content['error'], 'Invalid key or bad ETag')
 
 TestCompletionView = override_settings(**TestCompletionView.override_settings)(TestCompletionView)
+
+
+class TestCompletionViewSessionAuth(APITestCase):
+    from drf_to_s3.views import FineUploadCompletionView
+    urls = patterns('',
+        url(r'^s3/uploaded/$', FineUploadCompletionView.as_view()),
+    )
+
+    override_settings = {
+        'AWS_UPLOAD_SECRET_ACCESS_KEY': '12345',
+        'AWS_UPLOAD_BUCKET': 'my-upload-bucket',
+        'AWS_STORAGE_BUCKET_NAME': 'my-storage-bucket',
+    }
+
+    @mock.patch('drf_to_s3.s3.copy')
+    @establish_session
+    def test_that_upload_notification_with_hashed_session_key_returns_success(self, copy):
+        import hashlib
+        self.assertGreater(len(self.session_key), 0)
+        prefix = hashlib.md5(self.session_key).hexdigest()
+        notification = {
+            'bucket': 'my-upload-bucket',
+            'key': prefix + '/foo/bar/baz',
+            'uuid': '12345',
+            'name': 'baz',
+            'etag': '67890',
+        }
+        resp = self.client.post('/s3/uploaded/', notification)
+        self.assertEquals(resp.status_code, status.HTTP_200_OK)
+        self.assertEquals(len(resp.content), 0)
+
+    @establish_session
+    def test_that_upload_notification_without_hashed_session_key_fails(self):
+        notification = {
+            'bucket': 'my-upload-bucket',
+            'key': 'foo/bar/baz',
+            'uuid': '12345',
+            'name': 'baz',
+            'etag': '67890',
+        }
+        resp = self.client.post('/s3/uploaded/', notification)
+        self.assertEquals(resp.status_code, status.HTTP_200_OK) # for IE9/IE3
+        content = json.loads(resp.content)
+        self.assertTrue(content['error'].startswith('Key should start with'))
+
+    def test_that_upload_notification_with_no_session_fails(self):
+        notification = {
+            'bucket': 'my-upload-bucket',
+            'key': 'foo/bar/baz',
+            'uuid': '12345',
+            'name': 'baz',
+            'etag': '67890',
+        }
+        resp = self.client.post('/s3/uploaded/', notification)
+        self.assertEquals(resp.status_code, status.HTTP_200_OK) # for IE9/IE3
+        content = json.loads(resp.content)
+        self.assertTrue(content['error'].startswith('Key should start with'))
+
+    def test_with_missing_session(self):
+        pass
+
+TestCompletionViewSessionAuth = override_settings(**TestCompletionViewSessionAuth.override_settings)(TestCompletionViewSessionAuth)

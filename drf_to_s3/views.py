@@ -5,7 +5,7 @@ from rest_framework.views import APIView
 
 class FineUploaderErrorResponseMixin(object):
 
-    def make_error_response(self, request, serializer=None, message=None, compatibility_for_iframe=False):
+    def make_error_response(self, request, serializer=None, exception=None, compatibility_for_iframe=False):
         '''
         This implementation is designed for Fine Uploader,
         which expects `invalid: True`.
@@ -16,8 +16,8 @@ class FineUploaderErrorResponseMixin(object):
         response = {
             'invalid': True,
         }
-        if message is not None:
-            response['error'] = message
+        if exception is not None:
+            response['error'] = exception.detail
         if serializer is not None:
             response['errors'] = serializer.errors
         status = status.HTTP_200_OK if compatibility_for_iframe else status.HTTP_400_BAD_REQUEST
@@ -163,9 +163,10 @@ class FineUploadCompletionView(FineUploaderErrorResponseMixin, APIView):
         Return a response with status=status.HTTP_200_OK.
 
         Return a specific error message in the `error` key.
-        Under IE9 and IE8, you must return a 200 status with
-        `error` set, or else Fine Uploader can only display
-        a generic error message.
+        Under IE9 and IE8, if you return a non-200 status,
+        only a generic error message can be displayed. To
+        show a detailed error message, return a response
+        with 200 status and an `error` key set.
         http://blog.fineuploader.com/2013/08/16/fine-uploader-s3-upload-directly-to-amazon-s3-from-your-browser/#success-endpoint
 
         make_error_response will do this for you if you pass
@@ -212,7 +213,7 @@ class FineUploadCompletionView(FineUploaderErrorResponseMixin, APIView):
         except s3.ObjectNotFoundException as e:
             return self.make_error_response(
                 request=request,
-                message=e.detail,
+                exception=e,
                 compatibility_for_iframe=True
             )
 
@@ -221,16 +222,24 @@ class FineUploadCompletionView(FineUploaderErrorResponseMixin, APIView):
     def post(self, request, format=None):
         from rest_framework import status
         from rest_framework.response import Response
+        from rest_framework.exceptions import PermissionDenied
 
         serializer = self.serializer_class(data=request.DATA)
         if not serializer.is_valid():
             return self.make_error_response(
                 request=request,
-                serializer=serializer,
+                exception=e,
                 compatibility_for_iframe=True
             )
         obj = serializer.object
 
-        self.check_upload_permissions(request, obj)
+        try:
+            self.check_upload_permissions(request, obj)
+        except PermissionDenied as e:
+            return self.make_error_response(
+                request=request,
+                exception=e,
+                compatibility_for_iframe=True
+            )
 
         return self.handle_upload(request, **obj)
