@@ -17,16 +17,19 @@ def upload_prefix_for_request(request):
     each user, you prevent a malicious user from hijacking or
     claiming another user's uploads.
 
+    FIXME needs its own test?
+    Cleaner way to write this? Don't really want prefix_func()
+    called inside a try.
+
     '''
     from django.conf import settings
 
     # Allow the user to specify their own function
-    prefix_func = getattr(settings, 'S3_UPLOAD_PREFIX_FUNC', None)
+    prefix_func = getattr(settings, 'AWS_UPLOAD_PREFIX_FUNC', None)
     if prefix_func is not None:
         return prefix_func(request)
 
     import hashlib
-    prefix = getattr(settings, 'S3_UPLOAD_KEY_PREFIX', '')
     # Be sure to save the session
     # See https://docs.djangoproject.com/en/1.6/topics/http/sessions/#when-sessions-are-saved
     # Saving the session explicitly (instead of with
@@ -35,7 +38,11 @@ def upload_prefix_for_request(request):
     session = request.session
     session.save()
     hashed_session_key = hashlib.md5(session.session_key).hexdigest()
-    return prefix + '/' + hashed_session_key
+    prefix = getattr(settings, 'AWS_UPLOAD_KEY_PREFIX', '')
+    if len(prefix):
+        return prefix + '/' + hashed_session_key
+    else:
+        return hashed_session_key
 
 def check_policy_permissions(request, upload_policy):
     '''
@@ -77,4 +84,4 @@ def check_upload_permissions(request, bucket, key):
             _('Upload prefix must be non-zero-length and should be unique for each user')
         )
     if not key.startswith(upload_prefix):
-        raise PermissionDenied(_("Key should start with '%s'" % upload_prefix))
+        raise PermissionDenied(_("Key should start with '%s/'" % upload_prefix))
