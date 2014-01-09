@@ -53,7 +53,7 @@ class FineSignPolicyView(FineUploaderErrorResponseMixin, APIView):
         path, etc.
         '''
         from drf_to_s3.access_control import check_policy_permissions
-        check_policy_permissions(request.user, upload_policy)
+        check_policy_permissions(request, upload_policy)
 
     def pre_sign(self, upload_policy):
         '''
@@ -136,7 +136,7 @@ class FineUploadCompletionView(FineUploaderErrorResponseMixin, APIView):
 
         '''
         from drf_to_s3.access_control import check_upload_permissions
-        check_upload_permissions(request.user, obj['bucket'], obj['key'])
+        check_upload_permissions(request, obj['bucket'], obj['key'])
 
     def copy_upload_to_storage(self, request, bucket, key, uuid, name, etag):
         '''
