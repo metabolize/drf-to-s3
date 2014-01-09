@@ -73,3 +73,6 @@ coverage.xml
 docs/_build/
 
 venv/
+
+# Foreman
+.env

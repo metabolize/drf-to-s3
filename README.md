@@ -28,10 +28,12 @@ Development
 
 Running Tests:
 
+    Create .env with AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY
+
     virtualenv venv
     source venv/bin/activate
     pip install -r requirements.txt
-    s3_upload/runtests/runtests.py
+    foreman run drf_to_s3/runtests/runtests.py
 
 [Django REST Framework]: http://django-rest-framework.org/
 [Fine Uploader]: http://fineuploader.com/

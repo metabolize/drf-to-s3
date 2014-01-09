@@ -15,3 +15,8 @@ wsgiref>=0.1.2
 # This is used for generating documentation suitable for pypi
 
 pyandoc
+
+# We use this to copy objects from the upload bucket to the
+# storage bucket
+
+boto
