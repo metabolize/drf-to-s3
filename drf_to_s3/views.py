@@ -152,7 +152,7 @@ class FineUploadCompletionView(FineUploaderErrorResponseMixin, APIView):
             dst_key=self.nonexisting_key
         )
 
-    def handle_upload(self, request, bucket, key, uuid, name):
+    def handle_upload(self, request, serializer, obj):
         '''
         Subclasses should override, to provide handling for the
         successful upload.
@@ -201,6 +201,10 @@ class FineUploadCompletionView(FineUploaderErrorResponseMixin, APIView):
         from rest_framework.response import Response
         from drf_to_s3 import s3
 
+        bucket = obj['bucket']
+        key = obj['key']
+        name = obj['name']
+
         basename, ext = os.path.splitext(name)
         new_key = str(uuid.uuid4()) + ext
         try:
@@ -228,7 +232,7 @@ class FineUploadCompletionView(FineUploaderErrorResponseMixin, APIView):
         if not serializer.is_valid():
             return self.make_error_response(
                 request=request,
-                exception=e,
+                serializer=serializer,
                 compatibility_for_iframe=True
             )
         obj = serializer.object
@@ -242,4 +246,4 @@ class FineUploadCompletionView(FineUploaderErrorResponseMixin, APIView):
                 compatibility_for_iframe=True
             )
 
-        return self.handle_upload(request, **obj)
+        return self.handle_upload(request, serializer, obj)
