@@ -1,4 +1,5 @@
-# Amazon library, required to support deletion
+# We use this to copy objects from the upload bucket to the
+# storage bucket
 
 boto>=2.17,<2.17.99
 
@@ -16,7 +17,7 @@ wsgiref>=0.1.2
 
 pyandoc
 
-# We use this to copy objects from the upload bucket to the
-# storage bucket
 
 boto
+
+selenium

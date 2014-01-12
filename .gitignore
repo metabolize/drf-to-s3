@@ -76,3 +76,10 @@ venv/
 
 # Foreman
 .env
+
+##########
+# Upstream
+##########
+
+vendor/
+drf_to_s3/integration/static/fine-uploader

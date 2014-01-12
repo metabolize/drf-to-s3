@@ -21,11 +21,15 @@ from django.test.utils import get_runner
 
 def usage():
     return """
-    Usage: python runtests.py [UnitTestClass].[method]
+    Usage: runtests.py module.submodule.class.method
 
-    You can pass the Class name of the `UnitTestClass` you want to test.
+    You can pass the module and class name you want to test.
 
     Append a method name if you only want to test a specific method of that class.
+
+    With no arguments, it runs the unit tests, in tests/.
+
+    To run the integration tests, use runtests.py integration.
     """
 
 
@@ -34,15 +38,15 @@ def main():
 
     test_runner = TestRunner()
     if len(sys.argv) == 2:
-        test_case = '.' + sys.argv[1]
+        test_case = sys.argv[1]
     elif len(sys.argv) == 1:
-        test_case = ''
+        test_case = 'tests'
     else:
         print(usage())
         sys.exit(1)
-    test_module_name = 'drf_to_s3.tests'
+    test_module_name = 'drf_to_s3.'
     if django.VERSION[0] == 1 and django.VERSION[1] < 6:
-        test_module_name = 'tests'
+        test_module_name = ''
 
     failures = test_runner.run_tests([test_module_name + test_case])
 

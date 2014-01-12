@@ -3,8 +3,8 @@ drf-to-s3
 
 Interface for direct upload to S3 using the [POST API][].
 
-Designed for use with the excellent [Fine Uploader][]
-using the excellent [Django REST Framework][].
+Designed for use with the [Fine Uploader][] and
+[Django REST Framework][].
 
 This service has a few essential responsibilities:
 
@@ -26,14 +26,30 @@ Integrating into your project
 Development
 -----------
 
-Running Tests:
-
-    Create .env with AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY
-
     virtualenv venv
     source venv/bin/activate
     pip install -r requirements.txt
+
+### Running tests ###
+
     foreman run drf_to_s3/runtests/runtests.py
+
+### Running tests including S3 ###
+
+Create .env with AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY
+
+    foreman run drf_to_s3/runtests/runtests.py
+
+### Running Fine Uploader integration tests ###
+
+1. Create .env with AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY
+2. Choose a version to test and install it:
+
+    ./fine-uploader-build.sh version
+
+3. foreman run drf_to_s3/runtests/runtests.py integration
+
+
 
 [Django REST Framework]: http://django-rest-framework.org/
 [Fine Uploader]: http://fineuploader.com/

@@ -100,6 +100,7 @@ INSTALLED_APPS = (
     'rest_framework',
     'rest_framework.authtoken',
     'rest_framework.tests',
+    'drf_to_s3.integration',
 )
 
 # OAuth is optional and won't work if there is no oauth_provider & oauth2
