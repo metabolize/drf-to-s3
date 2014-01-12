@@ -5,19 +5,18 @@ from rest_framework import status
 from rest_framework.test import APITestCase
 
 
+@override_settings(
+    AWS_UPLOAD_SECRET_ACCESS_KEY='12345',
+    AWS_UPLOAD_BUCKET='my-upload-bucket',
+    AWS_UPLOAD_PREFIX_FUNC=lambda x: 'uploads',
+    AWS_STORAGE_BUCKET_NAME='my-storage-bucket',
+    APPEND_SLASH=False # Work around a Django bug: https://code.djangoproject.com/ticket/21766
+)
 class TestCompletionViewWithoutAuth(APITestCase):
     from drf_to_s3.views import FineUploadCompletionView
     urls = patterns('',
         url(r'^s3/uploaded$', FineUploadCompletionView.as_view()),
     )
-
-    override_settings = {
-        'AWS_UPLOAD_SECRET_ACCESS_KEY': '12345',
-        'AWS_UPLOAD_BUCKET': 'my-upload-bucket',
-        'AWS_UPLOAD_PREFIX_FUNC': lambda x: 'uploads',
-        'AWS_STORAGE_BUCKET_NAME': 'my-storage-bucket',
-        'APPEND_SLASH': False, # Work around a Django bug: https://code.djangoproject.com/ticket/21766
-    }
 
     @mock.patch('drf_to_s3.s3.copy')
     def test_that_upload_notification_returns_success(self, copy):
@@ -86,9 +85,13 @@ class TestCompletionViewWithoutAuth(APITestCase):
         content = json.loads(resp.content)
         self.assertEquals(content['error'], 'Invalid key or bad ETag')
 
-TestCompletionViewWithoutAuth = override_settings(**TestCompletionViewWithoutAuth.override_settings)(TestCompletionViewWithoutAuth)
 
-
+@override_settings(
+    AWS_UPLOAD_SECRET_ACCESS_KEY='12345',
+    AWS_UPLOAD_BUCKET='my-upload-bucket',
+    AWS_STORAGE_BUCKET_NAME='my-storage-bucket',
+    APPEND_SLASH=False # Work around a Django bug: https://code.djangoproject.com/ticket/21766
+)
 class TestCompletionViewSessionAuth(APITestCase):
     from drf_to_s3.views import FineUploadCompletionView
     urls = patterns('',
@@ -104,12 +107,6 @@ class TestCompletionViewSessionAuth(APITestCase):
             password=self.password
         )
 
-    override_settings = {
-        'AWS_UPLOAD_SECRET_ACCESS_KEY': '12345',
-        'AWS_UPLOAD_BUCKET': 'my-upload-bucket',
-        'AWS_STORAGE_BUCKET_NAME': 'my-storage-bucket',
-        'APPEND_SLASH': False, # Work around a Django bug: https://code.djangoproject.com/ticket/21766
-    }
 
     @mock.patch('drf_to_s3.s3.copy')
     def test_that_upload_notification_with_hashed_session_key_returns_success(self, copy):
@@ -159,5 +156,3 @@ class TestCompletionViewSessionAuth(APITestCase):
         self.assertEquals(resp.status_code, status.HTTP_200_OK) # for IE9/IE3
         content = json.loads(resp.content)
         self.assertEquals(content['error'], 'Log in before uploading')
-
-TestCompletionViewSessionAuth = override_settings(**TestCompletionViewSessionAuth.override_settings)(TestCompletionViewSessionAuth)

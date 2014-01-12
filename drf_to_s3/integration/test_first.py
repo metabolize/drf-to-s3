@@ -52,17 +52,17 @@ urlpatterns = patterns('',
     url(r'^api/s3/file_uploaded', FineUploadCompletionView.as_view()),
 )
 
+@override_settings(
+    LOGIN_REDIRECT_URL='/static/fine-jquery.html',
+    MIDDLEWARE_CLASSES=settings.MIDDLEWARE_CLASSES + ('drf_to_s3.middleware.UploadPrefixMiddleware',),
+    AWS_UPLOAD_BUCKET=os.environ['AWS_UPLOAD_BUCKET'],
+    AWS_STORAGE_BUCKET_NAME=os.environ['AWS_UPLOAD_BUCKET'],
+    AWS_UPLOAD_ACCESS_KEY_ID=os.environ['AWS_ACCESS_KEY_ID'],
+    AWS_UPLOAD_SECRET_ACCESS_KEY=os.environ['AWS_SECRET_ACCESS_KEY']
+)
 class FineTest(LiveServerTestCase):
     driver = None
     urls = __name__
-    override_settings = {
-        'LOGIN_REDIRECT_URL': '/static/fine-jquery.html',
-        'MIDDLEWARE_CLASSES': settings.MIDDLEWARE_CLASSES + ('drf_to_s3.middleware.UploadPrefixMiddleware',),
-        'AWS_UPLOAD_BUCKET': os.environ['AWS_UPLOAD_BUCKET'],
-        'AWS_STORAGE_BUCKET_NAME': os.environ['AWS_UPLOAD_BUCKET'],
-        'AWS_UPLOAD_ACCESS_KEY_ID': os.environ['AWS_ACCESS_KEY_ID'],
-        'AWS_UPLOAD_SECRET_ACCESS_KEY': os.environ['AWS_SECRET_ACCESS_KEY'],
-    }
 
     def setUp(self):
         from drf_to_s3.tests.util import get_user_model
@@ -99,5 +99,3 @@ class FineTest(LiveServerTestCase):
         self.assertIn('qq-upload-success', list_item.get_attribute('class'))
         print 'Looks good.'
         time.sleep(2) # Show off the results
-
-FineTest = override_settings(**FineTest.override_settings)(FineTest)

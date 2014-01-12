@@ -5,13 +5,13 @@ from rest_framework import status
 from rest_framework.test import APITestCase
 
 
+@override_settings(
+    AWS_UPLOAD_SECRET_ACCESS_KEY='12345',
+    AWS_UPLOAD_BUCKET='my-bucket',
+    AWS_UPLOAD_PREFIX_FUNC=lambda x: 'uploads'
+)
 class FineSignPolicyViewTestWithoutAuth(APITestCase):
     urls = 'drf_to_s3.urls'
-    override_settings = {
-        'AWS_UPLOAD_SECRET_ACCESS_KEY': '12345',
-        'AWS_UPLOAD_BUCKET': 'my-bucket',
-        'AWS_UPLOAD_PREFIX_FUNC': lambda x: 'uploads',
-    }
 
     def setUp(self):
         self.policy_document = {
@@ -67,15 +67,13 @@ class FineSignPolicyViewTestWithoutAuth(APITestCase):
         expected = {'invalid': True, 'errors': {'conditions.acl': ["ACL should be 'private'"]}}
         self.assertEquals(json.loads(resp.content), expected)
 
-FineSignPolicyViewTestWithoutAuth = override_settings(**FineSignPolicyViewTestWithoutAuth.override_settings)(FineSignPolicyViewTestWithoutAuth)
 
-
+@override_settings(
+    AWS_UPLOAD_SECRET_ACCESS_KEY='12345',
+    AWS_UPLOAD_BUCKET='my-bucket'
+)
 class FineSignPolicyViewSessionAuthTest(APITestCase):
     urls = 'drf_to_s3.urls'
-    override_settings = {
-        'AWS_UPLOAD_SECRET_ACCESS_KEY': '12345',
-        'AWS_UPLOAD_BUCKET': 'my-bucket',
-    }
 
     def setUp(self):
         from .util import get_user_model
@@ -160,8 +158,6 @@ class FineSignPolicyViewSessionAuthTest(APITestCase):
         content = json.loads(resp.content)
         self.assertTrue(content['invalid'])
         self.assertTrue(content['error'].startswith('Key should start with '))
-
-FineSignPolicyViewSessionAuthTest = override_settings(**FineSignPolicyViewSessionAuthTest.override_settings)(FineSignPolicyViewSessionAuthTest)
 
 
 class FineUploaderSettingsTest(APITestCase):
