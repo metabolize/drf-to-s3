@@ -44,7 +44,7 @@ Create .env with AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY
 
 ### Running Fine Uploader integration tests ###
 
-1. Create .env with AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY
+1. Create .env with AWS_UPLOAD_BUCKET, AWS_ACCESS_KEY_ID, and AWS_SECRET_ACCESS_KEY
 2. Choose a version to test and install it:
 
     ./fine-uploader-build.sh version
