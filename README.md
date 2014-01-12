@@ -26,6 +26,8 @@ Integrating into your project
 Development
 -----------
 
+    brew update
+    brew install chromedriver
     virtualenv venv
     source venv/bin/activate
     pip install -r requirements.txt
