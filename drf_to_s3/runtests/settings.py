@@ -103,42 +103,6 @@ INSTALLED_APPS = (
     'drf_to_s3.integration',
 )
 
-# OAuth is optional and won't work if there is no oauth_provider & oauth2
-try:
-    import oauth_provider
-    import oauth2
-except ImportError:
-    pass
-else:
-    INSTALLED_APPS += (
-        'oauth_provider',
-    )
-
-try:
-    import provider
-except ImportError:
-    pass
-else:
-    INSTALLED_APPS += (
-        'provider',
-        'provider.oauth2',
-    )
-
-# guardian is optional
-try:
-    import guardian
-except ImportError:
-    pass
-else:
-    ANONYMOUS_USER_ID = -1
-    AUTHENTICATION_BACKENDS = (
-        'django.contrib.auth.backends.ModelBackend', # default
-        'guardian.backends.ObjectPermissionBackend',
-    )
-    INSTALLED_APPS += (
-        'guardian',
-    )
-
 STATIC_URL = '/static/'
 
 PASSWORD_HASHERS = (
@@ -156,12 +120,3 @@ import django
 
 if django.VERSION < (1, 3):
     INSTALLED_APPS += ('staticfiles',)
-
-
-# If we're running on the Jenkins server we want to archive the coverage reports as XML.
-import os
-if os.environ.get('HUDSON_URL', None):
-    TEST_RUNNER = 'xmlrunner.extra.djangotestrunner.XMLTestRunner'
-    TEST_OUTPUT_VERBOSE = True
-    TEST_OUTPUT_DESCRIPTIONS = True
-    TEST_OUTPUT_DIR = 'xmlrunner'
