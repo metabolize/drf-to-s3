@@ -3,10 +3,9 @@ from django.conf.urls import patterns, url
 from django.test.utils import override_settings
 from rest_framework import status
 from rest_framework.test import APITestCase
-from .util import establish_session
 
 
-class TestCompletionView(APITestCase):
+class TestCompletionViewWithoutAuth(APITestCase):
     from drf_to_s3.views import FineUploadCompletionView
     urls = patterns('',
         url(r'^s3/uploaded$', FineUploadCompletionView.as_view()),
@@ -87,7 +86,7 @@ class TestCompletionView(APITestCase):
         content = json.loads(resp.content)
         self.assertEquals(content['error'], 'Invalid key or bad ETag')
 
-TestCompletionView = override_settings(**TestCompletionView.override_settings)(TestCompletionView)
+TestCompletionViewWithoutAuth = override_settings(**TestCompletionViewWithoutAuth.override_settings)(TestCompletionViewWithoutAuth)
 
 
 class TestCompletionViewSessionAuth(APITestCase):
@@ -95,6 +94,15 @@ class TestCompletionViewSessionAuth(APITestCase):
     urls = patterns('',
         url(r'^s3/uploaded$', FineUploadCompletionView.as_view()),
     )
+
+    def setUp(self):
+        from .util import get_user_model
+        self.username = 'frodo'
+        self.password = 'shire1234'
+        user = get_user_model().objects.create_user(
+            username=self.username,
+            password=self.password
+        )
 
     override_settings = {
         'AWS_UPLOAD_SECRET_ACCESS_KEY': '12345',
@@ -104,11 +112,12 @@ class TestCompletionViewSessionAuth(APITestCase):
     }
 
     @mock.patch('drf_to_s3.s3.copy')
-    @establish_session
     def test_that_upload_notification_with_hashed_session_key_returns_success(self, copy):
-        import hashlib
-        self.assertGreater(len(self.session_key), 0)
-        prefix = hashlib.md5(self.session_key).hexdigest()
+        self.client.login(
+            username=self.username,
+            password=self.password
+        )        
+        prefix = self.username
         notification = {
             'bucket': 'my-upload-bucket',
             'key': prefix + '/foo/bar/baz',
@@ -120,8 +129,11 @@ class TestCompletionViewSessionAuth(APITestCase):
         self.assertEquals(resp.status_code, status.HTTP_200_OK)
         self.assertEquals(len(resp.content), 0)
 
-    @establish_session
-    def test_that_upload_notification_without_hashed_session_key_fails(self):
+    def test_that_upload_notification_without_prefix_fails(self):
+        self.client.login(
+            username=self.username,
+            password=self.password
+        )
         notification = {
             'bucket': 'my-upload-bucket',
             'key': 'foo/bar/baz',
@@ -134,10 +146,11 @@ class TestCompletionViewSessionAuth(APITestCase):
         content = json.loads(resp.content)
         self.assertTrue(content['error'].startswith('Key should start with'))
 
-    def test_that_upload_notification_with_no_session_fails(self):
+    def test_that_upload_notification_without_login_fails(self):
+        prefix = self.username
         notification = {
             'bucket': 'my-upload-bucket',
-            'key': 'foo/bar/baz',
+            'key': prefix + '/foo/bar/baz',
             'uuid': '12345',
             'name': 'baz',
             'etag': '67890',
@@ -145,6 +158,6 @@ class TestCompletionViewSessionAuth(APITestCase):
         resp = self.client.post('/s3/uploaded', notification)
         self.assertEquals(resp.status_code, status.HTTP_200_OK) # for IE9/IE3
         content = json.loads(resp.content)
-        self.assertTrue(content['error'].startswith('Key should start with'))
+        self.assertEquals(content['error'], 'Log in before uploading')
 
 TestCompletionViewSessionAuth = override_settings(**TestCompletionViewSessionAuth.override_settings)(TestCompletionViewSessionAuth)

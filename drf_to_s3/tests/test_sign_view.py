@@ -3,10 +3,9 @@ from django.conf.urls import patterns, url
 from django.test.utils import override_settings
 from rest_framework import status
 from rest_framework.test import APITestCase
-from .util import establish_session
 
 
-class FineSignPolicyViewTest(APITestCase):
+class FineSignPolicyViewTestWithoutAuth(APITestCase):
     urls = 'drf_to_s3.urls'
     override_settings = {
         'AWS_UPLOAD_SECRET_ACCESS_KEY': '12345',
@@ -68,7 +67,7 @@ class FineSignPolicyViewTest(APITestCase):
         expected = {'invalid': True, 'errors': {'conditions.acl': ["ACL should be 'private'"]}}
         self.assertEquals(json.loads(resp.content), expected)
 
-FineSignPolicyViewTest = override_settings(**FineSignPolicyViewTest.override_settings)(FineSignPolicyViewTest)
+FineSignPolicyViewTestWithoutAuth = override_settings(**FineSignPolicyViewTestWithoutAuth.override_settings)(FineSignPolicyViewTestWithoutAuth)
 
 
 class FineSignPolicyViewSessionAuthTest(APITestCase):
@@ -78,11 +77,21 @@ class FineSignPolicyViewSessionAuthTest(APITestCase):
         'AWS_UPLOAD_BUCKET': 'my-bucket',
     }
 
-    @establish_session
-    def test_that_sign_upload_accepts_hashed_session_key(self):
-        import hashlib
-        self.assertGreater(len(self.session_key), 0)
-        prefix = hashlib.md5(self.session_key).hexdigest()
+    def setUp(self):
+        from .util import get_user_model
+        self.username = 'frodo'
+        self.password = 'shire1234'
+        user = get_user_model().objects.create_user(
+            username=self.username,
+            password=self.password
+        )
+
+    def test_that_sign_upload_accepts_username_as_prefix(self):
+        self.client.login(
+            username=self.username,
+            password=self.password
+        )
+        prefix = self.username
         self.policy_document = {
             "expiration": "2007-12-01T12:00:00.000Z",
             "conditions": [
@@ -103,10 +112,36 @@ class FineSignPolicyViewSessionAuthTest(APITestCase):
             content['invalid']
 
     @unittest.expectedFailure
-    @establish_session
-    def test_that_sign_upload_without_hashed_session_key_fails(self):
+    def test_that_sign_upload_without_prefix_fails(self):
         # FIXME This needs to construct a proper response with 'error' in it
+        self.client.login(
+            username=self.username,
+            password=self.password
+        )
         prefix = ''
+        self.policy_document = {
+            "expiration": "2007-12-01T12:00:00.000Z",
+            "conditions": [
+                {"acl": "private"},
+                {"bucket": "my-bucket"},
+                {"Content-Type": "image/jpeg"},
+                {"success_action_status": 200},
+                {"success_action_redirect": "http://example.com/foo/bar"},
+                {"key": prefix + "/foo/bar/baz.jpg"},
+                {"x-amz-meta-qqfilename": "baz.jpg"},
+                ["content-length-range", 1024, 10240]
+            ]
+        }
+        resp = self.client.post('/sign', self.policy_document, format='json')
+        self.assertEquals(resp.status_code, status.HTTP_403_FORBIDDEN)
+        content = json.loads(resp.content)
+        self.assertTrue(content['invalid'])
+        self.assertTrue(content['error'].startswith('Key should start with '))
+
+    @unittest.expectedFailure
+    def test_that_sign_upload_with_unauthenticated_user_fails(self):
+        # FIXME This needs to return a proper error response
+        prefix = self.username
         self.policy_document = {
             "expiration": "2007-12-01T12:00:00.000Z",
             "conditions": [

@@ -18,31 +18,20 @@ def upload_prefix_for_request(request):
     claiming another user's uploads.
 
     FIXME needs its own test?
-    Cleaner way to write this? Don't really want prefix_func()
-    called inside a try.
 
     '''
     from django.conf import settings
+    from rest_framework.exceptions import PermissionDenied
 
     # Allow the user to specify their own function
     prefix_func = getattr(settings, 'AWS_UPLOAD_PREFIX_FUNC', None)
     if prefix_func is not None:
         return prefix_func(request)
 
-    import hashlib
-    # Be sure to save the session
-    # See https://docs.djangoproject.com/en/1.6/topics/http/sessions/#when-sessions-are-saved
-    # Saving the session explicitly (instead of with
-    # session.modified = True) ensures that the session
-    # is present.
-    session = request.session
-    session.save()
-    hashed_session_key = hashlib.md5(session.session_key).hexdigest()
-    prefix = getattr(settings, 'AWS_UPLOAD_KEY_PREFIX', '')
-    if len(prefix):
-        return prefix + '/' + hashed_session_key
-    else:
-        return hashed_session_key
+    if not request.user.is_authenticated():
+        raise PermissionDenied(_('Log in before uploading'))
+
+    return request.user.get_username()
 
 def check_policy_permissions(request, upload_policy):
     '''
