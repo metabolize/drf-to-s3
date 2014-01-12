@@ -7,10 +7,7 @@ from .util import establish_session
 
 
 class FineSignPolicyViewTest(APITestCase):
-    from drf_to_s3.views import FineSignPolicyView
-    urls = patterns('',
-        url(r'^s3/sign/$', FineSignPolicyView.as_view()),
-    )
+    urls = 'drf_to_s3.urls'
     override_settings = {
         'AWS_UPLOAD_SECRET_ACCESS_KEY': '12345',
         'AWS_UPLOAD_BUCKET': 'my-bucket',
@@ -33,21 +30,21 @@ class FineSignPolicyViewTest(APITestCase):
         }
 
     def test_sign_upload_returns_success(self):
-        resp = self.client.post('/s3/sign/', self.policy_document, format='json')
+        resp = self.client.post('/sign', self.policy_document, format='json')
         self.assertEquals(resp.status_code, status.HTTP_200_OK)
         content = json.loads(resp.content)
         with self.assertRaises(KeyError):
             content['invalid']
 
     def test_sign_upload_overrides_expiration_date(self):
-        resp = self.client.post('/s3/sign/', self.policy_document, format='json')
+        resp = self.client.post('/sign', self.policy_document, format='json')
         policy_decoded = json.loads(resp.content)['policy_decoded']
         expiration = datetime.datetime.strptime(policy_decoded['expiration'], '%Y-%m-%dT%H:%M:%SZ')
         expected_expiration_before = datetime.datetime.today() + datetime.timedelta(300 + 1)
         self.assertLess(expiration, expected_expiration_before)
 
     def test_sign_upload_preserves_conditions(self):
-        resp = self.client.post('/s3/sign/', self.policy_document, format='json')
+        resp = self.client.post('/sign', self.policy_document, format='json')
         policy_decoded = json.loads(resp.content)['policy_decoded']
         self.assertEquals(policy_decoded['conditions'], self.policy_document['conditions'])
 
@@ -56,7 +53,7 @@ class FineSignPolicyViewTest(APITestCase):
         # The view needs to be fixed, so that the uploader gets a message it
         # can reasonably present
         self.policy_document['conditions'][1]['bucket'] = 'secret-bucket'
-        resp = self.client.post('/s3/sign/', self.policy_document, format='json')
+        resp = self.client.post('/sign', self.policy_document, format='json')
         self.assertEquals(resp.status_code, status.HTTP_403_FORBIDDEN)
         expected = {'invalid': True, 'errors': {'conditions.bucket': ['Bucket not allowed']}}
         self.assertEquals(json.loads(resp.content), expected)
@@ -66,7 +63,7 @@ class FineSignPolicyViewTest(APITestCase):
         # The view needs to be fixed, so that the uploader gets a message it
         # can reasonably present
         self.policy_document['conditions'][0]['acl'] = 'public-read'
-        resp = self.client.post('/s3/sign/', self.policy_document, format='json')
+        resp = self.client.post('/sign', self.policy_document, format='json')
         self.assertEquals(resp.status_code, status.HTTP_403_FORBIDDEN)
         expected = {'invalid': True, 'errors': {'conditions.acl': ["ACL should be 'private'"]}}
         self.assertEquals(json.loads(resp.content), expected)
@@ -75,10 +72,7 @@ FineSignPolicyViewTest = override_settings(**FineSignPolicyViewTest.override_set
 
 
 class FineSignPolicyViewSessionAuthTest(APITestCase):
-    from drf_to_s3.views import FineSignPolicyView
-    urls = patterns('',
-        url(r'^s3/sign/$', FineSignPolicyView.as_view()),
-    )
+    urls = 'drf_to_s3.urls'
     override_settings = {
         'AWS_UPLOAD_SECRET_ACCESS_KEY': '12345',
         'AWS_UPLOAD_BUCKET': 'my-bucket',
@@ -102,7 +96,7 @@ class FineSignPolicyViewSessionAuthTest(APITestCase):
                 ["content-length-range", 1024, 10240]
             ]
         }
-        resp = self.client.post('/s3/sign/', self.policy_document, format='json')
+        resp = self.client.post('/sign', self.policy_document, format='json')
         self.assertEquals(resp.status_code, status.HTTP_200_OK)
         content = json.loads(resp.content)
         with self.assertRaises(KeyError):
@@ -126,7 +120,7 @@ class FineSignPolicyViewSessionAuthTest(APITestCase):
                 ["content-length-range", 1024, 10240]
             ]
         }
-        resp = self.client.post('/s3/sign/', self.policy_document, format='json')
+        resp = self.client.post('/sign', self.policy_document, format='json')
         self.assertEquals(resp.status_code, status.HTTP_403_FORBIDDEN)
         content = json.loads(resp.content)
         self.assertTrue(content['invalid'])

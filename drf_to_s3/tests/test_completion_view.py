@@ -9,7 +9,7 @@ from .util import establish_session
 class TestCompletionView(APITestCase):
     from drf_to_s3.views import FineUploadCompletionView
     urls = patterns('',
-        url(r'^s3/uploaded/$', FineUploadCompletionView.as_view()),
+        url(r'^s3/uploaded$', FineUploadCompletionView.as_view()),
     )
 
     override_settings = {
@@ -17,6 +17,7 @@ class TestCompletionView(APITestCase):
         'AWS_UPLOAD_BUCKET': 'my-upload-bucket',
         'AWS_UPLOAD_PREFIX_FUNC': lambda x: 'uploads',
         'AWS_STORAGE_BUCKET_NAME': 'my-storage-bucket',
+        'APPEND_SLASH': False, # Work around a Django bug: https://code.djangoproject.com/ticket/21766
     }
 
     @mock.patch('drf_to_s3.s3.copy')
@@ -28,7 +29,7 @@ class TestCompletionView(APITestCase):
             'name': 'baz',
             'etag': '67890',
         }
-        resp = self.client.post('/s3/uploaded/', notification)
+        resp = self.client.post('/s3/uploaded', notification)
         self.assertEquals(resp.status_code, status.HTTP_200_OK)
         self.assertEquals(len(resp.content), 0)
 
@@ -43,7 +44,7 @@ class TestCompletionView(APITestCase):
             'name': 'baz',
             'etag': '67890',
         }
-        self.client.post('/s3/uploaded/', notification)
+        self.client.post('/s3/uploaded', notification)
         copy.assert_called_once_with(
             src_bucket=notification['bucket'],
             src_key=notification['key'],
@@ -62,7 +63,7 @@ class TestCompletionView(APITestCase):
             'name': 'baz.txt',
             'etag': '67890',
         }
-        self.client.post('/s3/uploaded/', notification)
+        self.client.post('/s3/uploaded', notification)
         copy.assert_called_once_with(
             src_bucket=notification['bucket'],
             src_key=notification['key'],
@@ -81,7 +82,7 @@ class TestCompletionView(APITestCase):
             'name': 'baz.txt',
             'etag': '67890',
         }
-        resp = self.client.post('/s3/uploaded/', notification)
+        resp = self.client.post('/s3/uploaded', notification)
         self.assertEquals(resp.status_code, status.HTTP_200_OK) # for IE9/IE3
         content = json.loads(resp.content)
         self.assertEquals(content['error'], 'Invalid key or bad ETag')
@@ -92,13 +93,14 @@ TestCompletionView = override_settings(**TestCompletionView.override_settings)(T
 class TestCompletionViewSessionAuth(APITestCase):
     from drf_to_s3.views import FineUploadCompletionView
     urls = patterns('',
-        url(r'^s3/uploaded/$', FineUploadCompletionView.as_view()),
+        url(r'^s3/uploaded$', FineUploadCompletionView.as_view()),
     )
 
     override_settings = {
         'AWS_UPLOAD_SECRET_ACCESS_KEY': '12345',
         'AWS_UPLOAD_BUCKET': 'my-upload-bucket',
         'AWS_STORAGE_BUCKET_NAME': 'my-storage-bucket',
+        'APPEND_SLASH': False, # Work around a Django bug: https://code.djangoproject.com/ticket/21766
     }
 
     @mock.patch('drf_to_s3.s3.copy')
@@ -114,7 +116,7 @@ class TestCompletionViewSessionAuth(APITestCase):
             'name': 'baz',
             'etag': '67890',
         }
-        resp = self.client.post('/s3/uploaded/', notification)
+        resp = self.client.post('/s3/uploaded', notification)
         self.assertEquals(resp.status_code, status.HTTP_200_OK)
         self.assertEquals(len(resp.content), 0)
 
@@ -127,7 +129,7 @@ class TestCompletionViewSessionAuth(APITestCase):
             'name': 'baz',
             'etag': '67890',
         }
-        resp = self.client.post('/s3/uploaded/', notification)
+        resp = self.client.post('/s3/uploaded', notification)
         self.assertEquals(resp.status_code, status.HTTP_200_OK) # for IE9/IE3
         content = json.loads(resp.content)
         self.assertTrue(content['error'].startswith('Key should start with'))
@@ -140,7 +142,7 @@ class TestCompletionViewSessionAuth(APITestCase):
             'name': 'baz',
             'etag': '67890',
         }
-        resp = self.client.post('/s3/uploaded/', notification)
+        resp = self.client.post('/s3/uploaded', notification)
         self.assertEquals(resp.status_code, status.HTTP_200_OK) # for IE9/IE3
         content = json.loads(resp.content)
         self.assertTrue(content['error'].startswith('Key should start with'))
