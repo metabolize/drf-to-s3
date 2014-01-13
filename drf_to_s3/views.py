@@ -116,6 +116,11 @@ class FineUploadCompletionView(FineUploaderErrorResponseMixin, APIView):
     necessary objects on the server, or return
     additional information to the client.
 
+    If you subclass this and are passing dictionaries as
+    attributes, you may want to use parsers.NestedFormParser,
+    which will automatically unpack attributes into
+    dictionaries, and allow your serializers to 
+
     '''
     from rest_framework.parsers import FormParser
     from rest_framework.renderers import JSONRenderer
@@ -235,7 +240,13 @@ class FineUploadCompletionView(FineUploaderErrorResponseMixin, APIView):
                 serializer=serializer,
                 compatibility_for_iframe=True
             )
-        obj = serializer.object
+        # Allow extending the serializer to return a list of
+        # objects. Return attrs as the first object and this
+        # will continue to work.
+        if isinstance(serializer.object, list):
+            obj = serializer.object[0]
+        else:
+            obj = serializer.object
 
         try:
             self.check_upload_permissions(request, obj)
