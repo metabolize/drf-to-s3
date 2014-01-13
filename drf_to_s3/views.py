@@ -244,12 +244,12 @@ class FineUploadCompletionView(FineUploaderErrorResponseMixin, APIView):
         # objects. Return attrs as the first object and this
         # will continue to work.
         if isinstance(serializer.object, list):
-            obj = serializer.object[0]
+            attrs = serializer.object[0]
         else:
-            obj = serializer.object
+            attrs = serializer.object
 
         try:
-            self.check_upload_permissions(request, obj)
+            self.check_upload_permissions(request, attrs)
         except PermissionDenied as e:
             return self.make_error_response(
                 request=request,
@@ -257,4 +257,4 @@ class FineUploadCompletionView(FineUploaderErrorResponseMixin, APIView):
                 compatibility_for_iframe=True
             )
 
-        return self.handle_upload(request, serializer, obj)
+        return self.handle_upload(request, serializer, serializer.object)
