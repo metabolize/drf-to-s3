@@ -7,6 +7,9 @@ try:
 except (IOError, ImportError):
    long_description = ''
 
+with open('requirements.txt', 'r') as f:
+    install_requires = [x.strip() for x in f.readlines()]
+
 from setuptools import setup
 
 setup(
@@ -21,6 +24,7 @@ setup(
     packages = [
         'drf_to_s3',
     ],
+    install_requires=install_requires,
     classifiers = [
         'Development Status :: 2 - Pre-Alpha',
         'Environment :: Web Environment',
