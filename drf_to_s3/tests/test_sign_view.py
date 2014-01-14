@@ -47,24 +47,18 @@ class FineSignPolicyViewTestWithoutAuth(APITestCase):
         policy_decoded = json.loads(resp.content)['policy_decoded']
         self.assertEquals(policy_decoded['conditions'], self.policy_document['conditions'])
 
-    @unittest.expectedFailure
     def test_that_disallowed_bucket_returns_expected_error(self):
-        # The view needs to be fixed, so that the uploader gets a message it
-        # can reasonably present
         self.policy_document['conditions'][1]['bucket'] = 'secret-bucket'
         resp = self.client.post('/sign', self.policy_document, format='json')
         self.assertEquals(resp.status_code, status.HTTP_403_FORBIDDEN)
-        expected = {'invalid': True, 'errors': {'conditions.bucket': ['Bucket not allowed']}}
+        expected = {'invalid': True, 'error': "Bucket should be 'my-bucket'"}
         self.assertEquals(json.loads(resp.content), expected)
 
-    @unittest.expectedFailure
     def test_that_disallowed_acl_returns_expected_error(self):
-        # The view needs to be fixed, so that the uploader gets a message it
-        # can reasonably present
         self.policy_document['conditions'][0]['acl'] = 'public-read'
         resp = self.client.post('/sign', self.policy_document, format='json')
         self.assertEquals(resp.status_code, status.HTTP_403_FORBIDDEN)
-        expected = {'invalid': True, 'errors': {'conditions.acl': ["ACL should be 'private'"]}}
+        expected = {'invalid': True, 'error': "ACL should be 'private'"}
         self.assertEquals(json.loads(resp.content), expected)
 
 
@@ -109,9 +103,7 @@ class FineSignPolicyViewSessionAuthTest(APITestCase):
         with self.assertRaises(KeyError):
             content['invalid']
 
-    @unittest.expectedFailure
     def test_that_sign_upload_without_prefix_fails(self):
-        # FIXME This needs to construct a proper response with 'error' in it
         self.client.login(
             username=self.username,
             password=self.password
@@ -136,7 +128,6 @@ class FineSignPolicyViewSessionAuthTest(APITestCase):
         self.assertTrue(content['invalid'])
         self.assertTrue(content['error'].startswith('Key should start with '))
 
-    @unittest.expectedFailure
     def test_that_sign_upload_with_unauthenticated_user_fails(self):
         # FIXME This needs to return a proper error response
         prefix = self.username
@@ -157,7 +148,7 @@ class FineSignPolicyViewSessionAuthTest(APITestCase):
         self.assertEquals(resp.status_code, status.HTTP_403_FORBIDDEN)
         content = json.loads(resp.content)
         self.assertTrue(content['invalid'])
-        self.assertTrue(content['error'].startswith('Key should start with '))
+        self.assertTrue(content['error'].startswith('Log in before uploading'))
 
 
 class FineUploaderSettingsTest(APITestCase):

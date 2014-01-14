@@ -12,16 +12,26 @@ class FineUploaderErrorResponseMixin(object):
         FIXME this should provide a user-readable 'error' message.
         '''
         from rest_framework import status
+        from rest_framework.exceptions import APIException
         from rest_framework.response import Response
         response = {
             'invalid': True,
         }
         if exception is not None:
             response['error'] = exception.detail
-        if serializer is not None:
+        elif serializer is not None:
             response['errors'] = serializer.errors
-        status = status.HTTP_200_OK if compatibility_for_iframe else status.HTTP_400_BAD_REQUEST
-        return Response(response, status=status)
+            response['error'] = ("Unable to complete your request. Errors with %s" %
+                ', '.join(serializer.errors.keys()))
+        else:
+            response['error'] = 'Unable to complete your request.'
+        if compatibility_for_iframe:
+            status_code = status.HTTP_200_OK
+        elif exception is not None and isinstance(exception, APIException):
+            status_code = exception.status_code
+        else:
+            status_code = status.HTTP_400_BAD_REQUEST
+        return Response(response, status=status_code)
 
 
 class FineSignPolicyView(FineUploaderErrorResponseMixin, APIView):
@@ -65,6 +75,7 @@ class FineSignPolicyView(FineUploaderErrorResponseMixin, APIView):
 
     def post(self, request, format=None):
         from rest_framework import status
+        from rest_framework.exceptions import PermissionDenied
         from rest_framework.response import Response
         from drf_to_s3 import s3
 
@@ -73,7 +84,14 @@ class FineSignPolicyView(FineUploaderErrorResponseMixin, APIView):
             return self.make_error_response(request, serializer=request_serializer)
         upload_policy = request_serializer.object
 
-        self.check_policy_permissions(request, upload_policy)
+        try:
+            self.check_policy_permissions(request, upload_policy)
+        except PermissionDenied as e:
+            return self.make_error_response(
+                request=request,
+                exception=e,
+                compatibility_for_iframe=False
+            )
         self.pre_sign(upload_policy)
 
         policy_document = self.serializer_class(upload_policy).data
