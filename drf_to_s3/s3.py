@@ -39,7 +39,7 @@ def validate_bucket_name(string_value):
 
 class ObjectNotFoundException(APIException):
     status_code = status.HTTP_400_BAD_REQUEST
-    detail = _('Invalid key or bad ETag')
+    default_detail = _('Invalid key or bad ETag')
 
 
 def copy(src_bucket, src_key, dst_bucket, dst_key, src_etag=None, validate_src_etag=False):
