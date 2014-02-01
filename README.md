@@ -34,6 +34,9 @@ Development
 
     brew update
     brew install chromedriver
+    brew tap phinze/cask
+    brew install brew-cask
+    brew cask install pandoc
     virtualenv venv
     source venv/bin/activate
     pip install -r requirements_dev.txt

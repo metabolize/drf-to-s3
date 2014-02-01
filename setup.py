@@ -2,10 +2,11 @@
 # Thanks James.
 
 try:
-   import pypandoc
-   long_description = pypandoc.convert('README.md', 'rst')
+    import pypandoc
+    long_description = pypandoc.convert('README.md', 'rst')
 except (IOError, ImportError):
-   long_description = ''
+    long_description = ''
+    print 'warning: pandoc or pypandoc does not seem to be installed; using empty long_description'
 
 with open('requirements.txt', 'r') as f:
     install_requires = [x.strip() for x in f.readlines()]
