@@ -17,10 +17,13 @@ This service has a few essential responsibilities:
 See this [Fine Uploader blog post][] for a long explanation of
 these responsibilities.
 
+This project is functional pre-alpha. Most significantly it needs
+some documentation.
+
 Integrating into your project
 -----------------------------
 
-1. `pip install -e git+git@bitbucket.org:bodylabs/drf-to-s3.git#egg=drf-to-s3`
+1. `pip install -e git+git@github.com:bodylabs/drf-to-s3.git#egg=drf-to-s3`
 2. 
 
 Development
