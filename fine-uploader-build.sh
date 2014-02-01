@@ -33,8 +33,8 @@ grunt package) || exit 1
 mkdir -p $TARGET &&
 find $SRC/_dist -depth 1 -type d -exec cp -r {} $TARGET \; &&
 # Remove all the version numbers
-find $TARGET -maxdepth 1 -depth 1 -name "*-$1*" -exec bash -c "mv \$0 \${0/-$1/}" {} \; &&
-find $TARGET -name "*-$1*" -exec bash -c "mv \$0 \${0/-$1/}" {} \; || exit 1
+find $TARGET -maxdepth 1 -depth 1 -name '*-$1*' -exec bash -c "mv \$0 \${0/-$1/}" {} \; &&
+find $TARGET -name '*-$1*' -exec bash -c "mv \$0 \${0/-$1/}" {} \; || exit 1
 
 echo
 echo Successfully built version $1
