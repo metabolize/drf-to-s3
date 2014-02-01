@@ -11,4 +11,4 @@ wsgiref>=0.1.2
 selenium
 
 # This is used for generating documentation suitable for pypi
-pyandoc
+pypandoc
