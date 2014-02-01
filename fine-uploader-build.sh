@@ -24,7 +24,12 @@ echo Downloading version $1
 echo
 
 mkdir -p $SRC
-git clone -b $1 $REMOTE $SRC || exit 1
+if [[ `git --version` < 'git version 1.9' ]]; then
+    git clone $REMOTE $SRC &&
+    (cd $SRC && git checkout $1) || exit 1
+else
+    git clone --branch $1 --single-branch $REMOTE $SRC || exit 1    
+fi
 
 (cd $SRC &&
 npm install &&
