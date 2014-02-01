@@ -23,6 +23,8 @@ Status
 This project is functional pre-alpha. Most significantly it needs
 some documentation.
 
+[![Build Status](https://travis-ci.org/bodylabs/drf-to-s3.png?branch=master)](https://travis-ci.org/bodylabs/drf-to-s3)
+
 Integrating into your project
 -----------------------------
 
