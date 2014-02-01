@@ -17,6 +17,9 @@ This service has a few essential responsibilities:
 See this [Fine Uploader blog post][] for a long explanation of
 these responsibilities.
 
+Status
+------
+
 This project is functional pre-alpha. Most significantly it needs
 some documentation.
 
