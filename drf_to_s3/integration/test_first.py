@@ -76,9 +76,41 @@ class FineTest(LiveServerTestCase):
     def tearDown(self):
         if self.driver is not None:
             self.driver.quit()
+
+    @classmethod
+    def create_remote_driver(cls, desired_capabilities):
+        import urlparse
+        username = os.environ['SAUCE_USERNAME']
+        access_key = os.environ['SAUCE_ACCESS_KEY']
+        if os.environ.get('CI', False):
+            capabilities['tunnel-identifier'] = os.environ['TRAVIS_JOB_NUMBER']    
+            hub_url = "%s:%s@localhost:4445" % (username, access_key)
+        else:
+            hub_url = "%s:%s@ondemand.saucelabs.com:80" % (username, access_key)
+        return webdriver.Remote(
+            desired_capabilities=desired_capabilities,
+            command_executor=str("http://%s/wd/hub" % hub_url)
+        )
+
+    @classmethod
+    def create_driver(cls):
+        remote = os.environ.get('CI', False) or os.environ.get('WITH_SAUCE', False)
+        if remote:
+            print 'Using Sauce Labs'
+            capabilities = webdriver.DesiredCapabilities.CHROME
+            capabilities['platform'] = 'Windows 8'
+            capabilities['version'] = '31'
+            if os.environ.get('CI', False):
+                capabilities['build'] = os.environ['TRAVIS_BUILD_NUMBER']
+                capabilities['tags'] = [os.environ['TRAVIS_PYTHON_VERSION'], 'CI']
+            driver = cls.create_remote_driver(capabilities)
+            driver.implicitly_wait(30)
+            return driver
+        else:
+            return webdriver.Chrome()
     
     def test_upload(self):
-        self.driver = webdriver.Chrome()
+        self.driver = self.create_driver()
 
         self.driver.get(self.live_server_url + '/api-auth/login/')
         login_page = LoginPage(self.driver)

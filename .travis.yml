@@ -5,7 +5,14 @@ python:
 #  - "2.6"
 install: pip install -r requirements_dev.txt
 # command to run tests, e.g. python setup.py test
-script: drf_to_s3/runtests/runtests.py
+script:
+  - "drf_to_s3/runtests/runtests.py"
+  - "drf_to_s3/runtests/runtests.py integration"
 env:
   global:
     secure: N+bw+xdt1r9p9ePkNoUkTluhT2T7TZeN/NletFPUps/bubO8o0tAifLPwqHSoBIh4N4ms4heNHf/nH7lV+8V5VQVaU/rdTfKc8CJW3OB7wmt/ZDU9Gry8RYFvxvfWCib0WHBxh9tvGacJ+t+Yd5eevpRTYZHS4OoGmmRi098PNE=
+addons:
+  sauce_connect:
+    username: paulmelnikow
+    access_key:
+      secure: bQb/lrZ5I7kIwM+wrTBiZHUIsVe1StCzzfp14XBffEYIOWnpPz+YukTtgeIlf73UaakN4GLDsHcX8BEBpDdFvaMcvQvjbFWAD1y9ZGVX/Rikxn+9BdkVaanpvtmURJ6IA2a8/cLttt92JzAQabJxqBWTbDcU6dG5xUrk1kPGMdk=

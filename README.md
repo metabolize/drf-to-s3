@@ -28,8 +28,8 @@ some documentation.
 Integrating into your project
 -----------------------------
 
-1. `pip install -e git+git@github.com:bodylabs/drf-to-s3.git#egg=drf-to-s3`
-2. 
+1. `pip install drf_to_s3`
+2. ...
 
 Development
 -----------
@@ -62,10 +62,17 @@ Create .env with AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY
 
 3. foreman run drf_to_s3/runtests/runtests.py integration
 
+To run them on Sauce Labs:
 
+1. Create a Sauce Labs account
+2. Set SAUCE_USERNAME and SAUCE_ACCESS_KEY in .env
+3. Install [Sauce Connect][]
+4. foreman run sh -c 'java -jar ~/code/Sauce-Connect-latest/Sauce-Connect.jar $SAUCE_USERNAME $SAUCE_ACCESS_KEY'
+4. WITH_SAUCE=1 foreman run drf_to_s3/runtests/runtests.py integration
 
 [Django REST Framework]: http://django-rest-framework.org/
 [Fine Uploader]: http://fineuploader.com/
 [POST API]: http://docs.aws.amazon.com/AmazonS3/latest/dev/HTTPPOSTForms.html
 [policy documents]: http://docs.aws.amazon.com/AmazonS3/latest/dev/HTTPPOSTForms.html#HTTPPOSTConstructPolicy
 [Fine Uploader blog post]: http://blog.fineuploader.com/2013/08/16/fine-uploader-s3-upload-directly-to-amazon-s3-from-your-browser/
+[Sauce Connect]: http://saucelabs.com/downloads/Sauce-Connect-latest.zip
