@@ -8,7 +8,9 @@ except (IOError, ImportError):
     long_description = ''
     print 'warning: pandoc or pypandoc does not seem to be installed; using empty long_description'
 
-with open('requirements.txt', 'r') as f:
+import os
+requirements_file = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'requirements.txt')
+with open(requirements_file, 'r') as f:
     install_requires = [x.strip() for x in f.readlines()]
 
 from setuptools import setup
