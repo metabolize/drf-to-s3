@@ -34,6 +34,7 @@ Integrating into your project
 Development
 -----------
 
+    npm install -g grunt-cli
     brew update
     brew install chromedriver
     brew tap phinze/cask

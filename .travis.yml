@@ -4,6 +4,7 @@ python:
   - "2.7"
 #  - "2.6"
 install:
+- npm install -g grunt-cli
 - pip install -r requirements_dev.txt
 - ./fine-uploader-build.sh $FINE_UPLOADER_VERSION
 script:
