@@ -78,17 +78,19 @@ class FineTest(LiveServerTestCase):
             self.driver.quit()
 
     @classmethod
-    def create_remote_driver(cls, desired_capabilities):
+    def create_remote_driver(cls, capabilities):
         import urlparse
         username = os.environ['SAUCE_USERNAME']
         access_key = os.environ['SAUCE_ACCESS_KEY']
         if os.environ.get('CI', False):
+            capabilities['build'] = os.environ['TRAVIS_BUILD_NUMBER']
+            capabilities['tags'] = [os.environ['TRAVIS_PYTHON_VERSION'], 'CI']
             capabilities['tunnel-identifier'] = os.environ['TRAVIS_JOB_NUMBER']    
             hub_url = "%s:%s@localhost:4445" % (username, access_key)
         else:
             hub_url = "%s:%s@ondemand.saucelabs.com:80" % (username, access_key)
         return webdriver.Remote(
-            desired_capabilities=desired_capabilities,
+            desired_capabilities=capabilities,
             command_executor=str("http://%s/wd/hub" % hub_url)
         )
 
@@ -100,9 +102,6 @@ class FineTest(LiveServerTestCase):
             capabilities = webdriver.DesiredCapabilities.CHROME
             capabilities['platform'] = 'Windows 8'
             capabilities['version'] = '31'
-            if os.environ.get('CI', False):
-                capabilities['build'] = os.environ['TRAVIS_BUILD_NUMBER']
-                capabilities['tags'] = [os.environ['TRAVIS_PYTHON_VERSION'], 'CI']
             driver = cls.create_remote_driver(capabilities)
             driver.implicitly_wait(30)
             return driver
