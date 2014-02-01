@@ -10,6 +10,21 @@ from selenium.webdriver.support import expected_conditions as EC # available sin
 from drf_to_s3.views import FineUploadCompletionView
 
 
+def create_random_temporary_file():
+    '''
+    Create a temporary file with random contents, and return its path.
+
+    The caller is responsible for removing the file when done.
+    '''
+    def random_line():
+        import random, string
+        return ''.join(random.choice(string.ascii_letters) for x in range(80))
+    import tempfile
+    with tempfile.NamedTemporaryFile('w', delete=False) as f:
+        f.write('\n'.join(random_line() for x in range(30)))
+        return f.name
+
+
 class LoginPage(object):
     '''
     Page object for the login page.
@@ -72,10 +87,12 @@ class FineTest(LiveServerTestCase):
             username=self.username,
             password=self.password
         )
+        self.test_file = create_random_temporary_file()
 
     def tearDown(self):
         if self.driver is not None:
             self.driver.quit()
+        os.remove(self.test_file)
 
     @classmethod
     def create_remote_driver(cls, capabilities):
@@ -121,7 +138,7 @@ class FineTest(LiveServerTestCase):
         WebDriverWait(self.driver, 10).until(EC.title_contains('Integration Test'))
 
         upload_page = UploadPage(self.driver)
-        upload_page.input_file.send_keys('/Users/pnm/Desktop/foo.txt')
+        upload_page.input_file.send_keys(self.test_file)
 
         # Upload starts automatically
         time.sleep(2)
