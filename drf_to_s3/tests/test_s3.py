@@ -2,7 +2,6 @@ import unittest, uuid
 
 class S3Test(unittest.TestCase):
     prefix = 'drf-to-s3/'
-    bucket_name = 'bodylabs-test'
 
     def setUp(self):
         import boto, os
@@ -13,10 +12,11 @@ class S3Test(unittest.TestCase):
         try:
             for k in keys:
                 os.environ[k]
+            self.bucket_name = os.environ.get('AWS_TEST_BUCKET', 'drf-to-s3-test')
         except KeyError:
             self.skipTest('To test s3, set %s in .env' % ' and '.join(keys))
 
-        conn = boto.connect_s3()        
+        conn = boto.connect_s3()
         bucket = conn.get_bucket(self.bucket_name)
         k = Key(bucket)
         k.key = "%s%s.txt" % (str(uuid.uuid4()), self.prefix)
