@@ -20,3 +20,7 @@ addons:
     username: paulmelnikow
     access_key:
       secure: bQb/lrZ5I7kIwM+wrTBiZHUIsVe1StCzzfp14XBffEYIOWnpPz+YukTtgeIlf73UaakN4GLDsHcX8BEBpDdFvaMcvQvjbFWAD1y9ZGVX/Rikxn+9BdkVaanpvtmURJ6IA2a8/cLttt92JzAQabJxqBWTbDcU6dG5xUrk1kPGMdk=
+notifications:
+  hipchat:
+    rooms:
+      secure: B3Xe8WuUXOdoxUTHsoLe5t6zbeCZsBkS+YHfi69BXapDsO2V/cZvQC/u5eSx4KXxy6VDmLMDMS7VILB0cS3/AULdWAMTXju/q/C7y/h2dVHKD0YeIiOTn47bg0pxDOprdzZbc3J80u31S+zDqbjH7d+GnTavetJ2f8Wh3HrdSBg=
