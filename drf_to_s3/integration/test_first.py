@@ -70,8 +70,8 @@ urlpatterns = patterns('',
 @override_settings(
     LOGIN_REDIRECT_URL='/static/fine-jquery.html',
     MIDDLEWARE_CLASSES=settings.MIDDLEWARE_CLASSES + ('drf_to_s3.middleware.UploadPrefixMiddleware',),
-    AWS_UPLOAD_BUCKET=os.environ['AWS_UPLOAD_BUCKET'],
-    AWS_STORAGE_BUCKET_NAME=os.environ['AWS_UPLOAD_BUCKET'],
+    AWS_UPLOAD_BUCKET=os.environ.get('AWS_TEST_BUCKET', 'drf-to-s3-test'),
+    AWS_STORAGE_BUCKET_NAME=os.environ.get('AWS_TEST_BUCKET', 'drf-to-s3-test'),
     AWS_UPLOAD_ACCESS_KEY_ID=os.environ['AWS_ACCESS_KEY_ID'],
     AWS_UPLOAD_SECRET_ACCESS_KEY=os.environ['AWS_SECRET_ACCESS_KEY']
 )
