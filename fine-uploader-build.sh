@@ -24,7 +24,7 @@ echo Downloading version $1
 echo
 
 mkdir -p $SRC
-if [[ `git --version` < 'git version 1.9' ]]; then
+if [[ `git --version` < 'git version 1.8' ]]; then
     git clone $REMOTE $SRC &&
     (cd $SRC && git checkout $1) || exit 1
 else
