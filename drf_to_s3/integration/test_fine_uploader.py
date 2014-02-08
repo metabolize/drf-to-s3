@@ -7,23 +7,8 @@ from selenium import webdriver
 from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.support.ui import WebDriverWait # available since 2.4.0
 from selenium.webdriver.support import expected_conditions as EC # available since 2.26.0
-from drf_to_s3.views import FineUploadCompletionView
-
-
-def create_random_temporary_file():
-    '''
-    Create a temporary file with random contents, and return its path.
-
-    The caller is responsible for removing the file when done.
-    '''
-    def random_line():
-        import random, string
-        return ''.join(random.choice(string.ascii_letters) for x in range(80))
-    import tempfile
-    with tempfile.NamedTemporaryFile('w', delete=False) as f:
-        f.write('\n'.join(random_line() for x in range(30)))
-        return f.name
-
+from drf_to_s3.views import fine_uploader_views
+from drf_to_s3.tests.util import create_random_temporary_file
 
 class LoginPage(object):
     '''
@@ -64,7 +49,7 @@ urlpatterns = patterns('',
     url(r'^server_settings', server_settings_js),
     url(r'^api-auth/', include('rest_framework.urls', namespace='rest_framework')),
     url(r'^api/s3/', include('drf_to_s3.urls')),
-    url(r'^api/s3/file_uploaded', FineUploadCompletionView.as_view()),
+    url(r'^api/s3/file_uploaded', fine_uploader_views.FineUploadCompletionView.as_view()),
 )
 
 @override_settings(

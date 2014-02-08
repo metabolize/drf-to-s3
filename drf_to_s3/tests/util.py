@@ -30,3 +30,17 @@ def get_user_model():
         return User
     else:
         return get_user_model()
+
+def create_random_temporary_file():
+    '''
+    Create a temporary file with random contents, and return its path.
+
+    The caller is responsible for removing the file when done.
+    '''
+    def random_line():
+        import random, string
+        return ''.join(random.choice(string.ascii_letters) for x in range(80))
+    import tempfile
+    with tempfile.NamedTemporaryFile('w', delete=False) as f:
+        f.write('\n'.join(random_line() for x in range(30)))
+        return f.name
