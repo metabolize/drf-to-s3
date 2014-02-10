@@ -218,6 +218,11 @@ class NaivePolicySerializer(serializers.Serializer):
             return attrs
 
 
+class APIUploadCompletionSerializer(serializers.Serializer):
+    key = serializers.CharField()
+    filename = serializers.CharField()
+
+ 
 class FineUploadCompletionSerializer(serializers.Serializer):
     bucket = serializers.CharField()
     key = serializers.CharField()

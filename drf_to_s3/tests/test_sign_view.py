@@ -32,8 +32,7 @@ class FineSignPolicyViewTestWithoutAuth(APITestCase):
         resp = self.client.post('/sign', self.policy_document, format='json')
         self.assertEquals(resp.status_code, status.HTTP_200_OK)
         content = json.loads(resp.content)
-        with self.assertRaises(KeyError):
-            content['invalid']
+        self.assertNotIn('invalid', content)
 
     def test_sign_upload_overrides_expiration_date(self):
         resp = self.client.post('/sign', self.policy_document, format='json')
@@ -155,6 +154,6 @@ class FineUploaderSettingsTest(APITestCase):
 
     @override_settings(AWS_UPLOAD_SECRET_ACCESS_KEY='1451')
     def test_that_secret_key_pulls_from_settings(self):
-        from drf_to_s3.views import FineSignPolicyView
-        view = FineSignPolicyView()
+        from drf_to_s3.views import fine_uploader_views
+        view = fine_uploader_views.FineSignPolicyView()
         self.assertEquals(view.get_aws_secret_access_key(), '1451')

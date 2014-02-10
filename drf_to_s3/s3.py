@@ -19,9 +19,59 @@ def sign_policy_document(policy_document, secret_key):
         'signature': signature,
     }
 
+def sign_rest_request(secret_key, method, content_md5='', content_type='', expires='', canonicalized_headers='', canonicalized_resource=''):
+    '''
+    Construct a signature suitable for a REST request.
+
+    http://docs.aws.amazon.com/AmazonS3/latest/dev/RESTAuthentication.html#RESTAuthenticationExamples
+
+    '''
+    import base64, hashlib, hmac
+    string_to_sign = "\n".join([method, content_md5, content_type, str(expires), canonicalized_headers, canonicalized_resource])
+    return base64.b64encode(hmac.new(secret_key, string_to_sign, hashlib.sha1).digest())
+
+def build_signed_upload_uri(bucket, key, access_key_id, secret_key, expire_after_seconds):
+    '''
+    Accept bucket name, bucket key and s3 credentials as input
+    Return signed_url for PUT upload.
+    
+    http://docs.aws.amazon.com/AmazonS3/latest/dev/RESTAuthentication.html#RESTAuthenticationExamples
+    '''
+
+    import numbers, time, base64, hmac, urllib, hashlib
+    for v in [bucket, key, access_key_id, secret_key]:
+        if not isinstance(v, basestring) or not len(v):
+            raise ValueError('Parameter must be a non-zero-length string')
+    if not isinstance(expire_after_seconds, numbers.Integral):
+        raise ValueError('expire_after_seconds must be an integer')
+
+    expires = utc_plus_as_timestamp(expire_after_seconds)
+    signature = sign_rest_request(
+        secret_key,
+        method='PUT',
+        expires=expires,
+        canonicalized_headers='x-amz-acl:private',
+        canonicalized_resource=urllib.quote("/%s/%s" % (bucket, key))
+    )
+    params = {
+        'AWSAccessKeyId': access_key_id,
+        'Expires': expires,
+        'x-amz-acl': 'private',
+        'Signature': signature.strip(),
+    }
+    return 'https://%s.s3.amazonaws.com/%s?%s' % (
+        bucket,
+        urllib.quote(key),
+        urllib.urlencode(params)
+    )
+
 def utc_plus(seconds):
     import datetime
     return datetime.datetime.utcnow() + datetime.timedelta(0, seconds)
+
+def utc_plus_as_timestamp(seconds):
+    import calendar
+    return calendar.timegm(utc_plus(seconds).timetuple())
 
 def validate_bucket_name(string_value):
     '''
