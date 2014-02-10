@@ -1,6 +1,13 @@
 drf-to-s3 Release History
 =========================
 
+0.7.1
+-----
+February 10, 2014
+
+Fix for pip install.
+
+
 0.7
 ---
 February 10, 2014

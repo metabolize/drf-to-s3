@@ -26,6 +26,7 @@ setup(
     license = 'MIT',
     packages = [
         'drf_to_s3',
+        'drf_to_s3/views',
     ],
     install_requires=install_requires,
     classifiers = [
