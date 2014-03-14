@@ -26,7 +26,6 @@ class TestParser(unittest.TestCase):
         }
         self.assertEquals(result, expected)
 
-    @unittest.expectedFailure
     def test_form_parser_handle_unicode_right(self):
         
         unicode_str = u'测试'
