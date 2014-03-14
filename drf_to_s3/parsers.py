@@ -54,9 +54,12 @@ class NestedFormParser(parsers.BaseParser):
     media_type = 'application/x-www-form-urlencoded'
 
     def parse(self, stream, media_type=None, parser_context=None):
+        import urllib
         from querystring_parser import parser
         from django.conf import settings
 
         encoding = parser_context.get('encoding', settings.DEFAULT_CHARSET)
-        encoded_data = stream.read().decode(encoding)
-        return parser.parse(encoded_data)
+        # Since the quoted string is in ascii, the decoding has no effect
+        # until after unquoting. Must unquote the string before decoding it.
+        decoded_data = urllib.unquote_plus(stream.read()).decode(encoding)
+        return parser.parse(decoded_data, True)
