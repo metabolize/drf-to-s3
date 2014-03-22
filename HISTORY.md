@@ -1,6 +1,13 @@
 drf-to-s3 Release History
 =========================
 
+0.7.2
+-----
+March 14, 2014
+
+Fix NestedFormParser to properly handle non-ascii characters.
+
+
 0.7.1
 -----
 February 10, 2014
