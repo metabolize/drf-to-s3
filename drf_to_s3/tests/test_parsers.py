@@ -41,3 +41,19 @@ class TestParser(unittest.TestCase):
             'email': 'foo@bar.com',
         }
         self.assertEquals(result, expected)
+
+    def test_form_parser_with_ampersand(self):
+        flattened = {
+            'name': u'Tom & Jerry',
+            'email': 'foo@bar.com',
+        }
+        flattened = {k: v.encode('utf-8') for k, v in flattened.iteritems()}
+
+        stream = BytesIO(urllib.urlencode(flattened))
+        result = self.parser.parse(stream, 'application/x-www-form-urlencoded', {'encoding': 'utf-8'})
+
+        expected = {
+            'name': u'Tom & Jerry',
+            'email': 'foo@bar.com',
+        }
+        self.assertEquals(result, expected)

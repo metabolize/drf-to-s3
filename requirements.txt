@@ -1,2 +1,2 @@
-querystring_parser>=1.1,<1.1.99
+-e git+https://github.com/bodylabs/querystring-parser@patched#egg=querystring_parser
 boto>=2.17,<2.17.99

@@ -59,7 +59,4 @@ class NestedFormParser(parsers.BaseParser):
         from django.conf import settings
 
         encoding = parser_context.get('encoding', settings.DEFAULT_CHARSET)
-        # Since the quoted string is in ascii, the decoding has no effect
-        # until after unquoting. Must unquote the string before decoding it.
-        decoded_data = urllib.unquote_plus(stream.read()).decode(encoding)
-        return parser.parse(decoded_data, True)
+        return parser.parse(stream.read(), unquote=True, encoding=encoding)
