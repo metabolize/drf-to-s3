@@ -126,3 +126,13 @@ task :sdist do
     end
     raise unless system("python setup.py sdist")
 end
+
+task :upload do
+    unless command_is_in_path?('pandoc')
+        puts
+        puts "Please install pandoc."
+        puts
+        raise
+    end
+    raise unless system("python setup.py sdist upload")
+end
