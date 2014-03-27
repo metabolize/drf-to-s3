@@ -190,6 +190,34 @@ class DefaultPolicySerializerTest(unittest.TestCase):
         expected = ['Filename should not include fancy characters']
         self.assertEquals(serializer.errors['conditions.x-amz-meta-qqfilename'], expected)
 
+    def test_that_serialize_with_unicode_filename_fails(self):
+        json_data = '''
+        {
+            "expiration": "2007-12-01T12:00:00.000Z",
+            "conditions": [
+                {"x-amz-meta-qqfilename": "%E6%B5%8B%E8%AF%95.ply"}
+            ]
+        }
+        '''
+        data = json.loads(json_data)
+        serializer = self.serializer_class(data=data)
+        serializer.required_conditions = []
+        serializer.optional_conditions = ['x-amz-meta-qqfilename']
+        expected = ['Filename should not include fancy characters']
+        self.assertEquals(serializer.errors['conditions.x-amz-meta-qqfilename'], expected)
+
+    def test_that_serialize_with_unencoded_filename_fails(self):
+        data = {
+            "conditions": [
+                {"x-amz-meta-qqfilename": u"\u9017"},
+            ],
+        }
+        serializer = self.serializer_class(data=data)
+        serializer.required_conditions = []
+        serializer.optional_conditions = ['x-amz-meta-qqfilename']
+        expected = ['Filename should be a valid URL-encoded string']
+        self.assertEquals(serializer.errors['conditions.x-amz-meta-qqfilename'], expected)
+
     def test_that_serialize_with_invalid_bucket_fails(self):
         json_data = '''
         {

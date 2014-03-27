@@ -61,6 +61,26 @@ class FineSignPolicyViewTestWithoutAuth(APITestCase):
         self.assertEquals(json.loads(resp.content), expected)
 
 
+    def test_that_reject_unicode_filename(self):
+        self.policy_document = {
+            "expiration": "2007-12-01T12:00:00.000Z",
+            "conditions": [
+                {"acl": "private"},
+                {"bucket": "my-bucket"},
+                {"Content-Type": "image/jpeg"},
+                {"success_action_status": 200},
+                {"success_action_redirect": "http://example.com/foo/bar"},
+                {"key": "/foo/bar/baz.jpg"},
+                {"x-amz-meta-qqfilename": "%E6%B5%8B%E8%AF%95.ply"},
+                ["content-length-range", 1024, 10240]
+            ]
+        }
+        resp = self.client.post('/sign', self.policy_document, format='json')
+        self.assertEquals(resp.status_code, status.HTTP_400_BAD_REQUEST)
+        content = json.loads(resp.content)
+        self.assertTrue(content['invalid'])
+        self.assertEquals(content['errors'], {u'conditions.x-amz-meta-qqfilename': [u'Filename should not include fancy characters']})
+
 @override_settings(
     AWS_UPLOAD_SECRET_ACCESS_KEY='12345',
     AWS_UPLOAD_BUCKET='my-bucket'

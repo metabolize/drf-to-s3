@@ -122,12 +122,22 @@ class DefaultPolicySerializer(naive_serializers.NaivePolicySerializer):
 
     def validate_condition_x_amz_meta_qqfilename(self, condition):
         '''
-        Require that x-amz-meta-qqfilename is a string containing
-        only URL characters.
+        Require that x-amz-meta-qqfilename is a valid URL-encoded
+        string containing only URL characters.
         '''
+        import urllib
         from .util import string_is_valid_filename
-        if (not isinstance(condition.value, basestring) or
-            not string_is_valid_filename(condition.value)):
+        if not isinstance(condition.value, basestring):
+            raise ValidationError(
+                _('Filename should be a string'),
+            )
+        try:
+            decoded_filename = urllib.unquote_plus(str(condition.value)).decode('utf-8')
+        except UnicodeEncodeError:
+            raise ValidationError(
+                _('Filename should be a valid URL-encoded string'),
+            )
+        if not string_is_valid_filename(decoded_filename):
             raise ValidationError(
                 _('Filename should not include fancy characters'),
             )
