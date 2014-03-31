@@ -1,6 +1,13 @@
 drf-to-s3 Release History
 =========================
 
+0.7.5
+-----
+March 31, 2014
+
+Install querystring_parser dependency from PyPI.
+
+
 0.7.4
 -----
 March 27, 2014

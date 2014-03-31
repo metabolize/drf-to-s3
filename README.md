@@ -91,11 +91,6 @@ This will install the remaining dependencies: [boto][],
 and [querystring_parser][] which handles nested keys within
 `uploadSuccess.params`.
 
-Temporarily, you must use our fork of querystring_parser. Please
-install it separately:
-
-        -e git+https://github.com/bodylabs/querystring-parser@patched#egg=querystring_parser
-
 
 How to use
 ----------
