@@ -1,6 +1,13 @@
 drf-to-s3 Release History
 =========================
 
+0.7.7
+-----
+March 31, 2014
+
+Relax dependency versions.
+
+
 0.7.6
 -----
 March 31, 2014
