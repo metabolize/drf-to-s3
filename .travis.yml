@@ -12,7 +12,7 @@ script:
 - drf_to_s3/runtests/runtests.py integration
 env:
   global:
-  - FINE_UPLOADER_VERSION=4.3.0
+  - FINE_UPLOADER_VERSION=5.0.7
   - secure: N+bw+xdt1r9p9ePkNoUkTluhT2T7TZeN/NletFPUps/bubO8o0tAifLPwqHSoBIh4N4ms4heNHf/nH7lV+8V5VQVaU/rdTfKc8CJW3OB7wmt/ZDU9Gry8RYFvxvfWCib0WHBxh9tvGacJ+t+Yd5eevpRTYZHS4OoGmmRi098PNE=
   - secure: E7iOE8Oo8PmqE8hPHKfS+vL41Cl+1EZZrz4MtXRZtpv3r8wBvcKnAJrTELBUXROFuwZBFIb5OLNMQzq1kfbPWZRXDbiphCpJfTut85c0l4gJQ8U85XTwi7pXtkAxG5bsqMa1vUqdEqPFEi+e0T4o2w7Z4wLuvokJgygrb5uJdBg=
 addons:
