@@ -72,5 +72,5 @@ def check_upload_permissions(request, bucket, key):
         raise ImproperlyConfigured(
             _('Upload prefix must be non-zero-length and should be unique for each user')
         )
-    if not key.startswith(upload_prefix):
+    if not key.startswith(upload_prefix+'/'):
         raise PermissionDenied(_("Key should start with '%s/'" % upload_prefix))
