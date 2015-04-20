@@ -63,7 +63,11 @@ class FineSignPolicyView(FineUploaderErrorResponseMixin, APIView):
     from rest_framework.renderers import JSONRenderer
     from drf_to_s3.serializers import DefaultPolicySerializer
 
-    expire_after_seconds = 300
+    @property
+    def expire_after_seconds(self):
+        from django.conf import settings
+        return getattr(settings, 'AWS_UPLOAD_EXPIRE_AFTER_SECONDS', 300)
+
     serializer_class = DefaultPolicySerializer
     parser_classes = (JSONParser,)
     renderer_classes = (JSONRenderer,)

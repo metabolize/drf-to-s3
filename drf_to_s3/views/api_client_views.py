@@ -8,7 +8,10 @@ class SignedPutURIView(APIView):
     Generate a signed url for the user to upload a file to S3.
 
     '''
-    expire_after_seconds = 300
+    @property
+    def expire_after_seconds(self):
+        from django.conf import settings
+        return getattr(settings, 'AWS_UPLOAD_EXPIRE_AFTER_SECONDS', 300)
 
     def get_aws_upload_bucket(self):
         from django.conf import settings
