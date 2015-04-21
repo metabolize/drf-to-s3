@@ -38,7 +38,21 @@ class FineSignPolicyViewTestWithoutAuth(APITestCase):
         resp = self.client.post('/sign', self.policy_document, format='json')
         policy_decoded = json.loads(resp.content)['policy_decoded']
         expiration = datetime.datetime.strptime(policy_decoded['expiration'], '%Y-%m-%dT%H:%M:%SZ')
-        expected_expiration_before = datetime.datetime.today() + datetime.timedelta(300 + 1)
+        expected_expiration_after = datetime.datetime.utcnow() + datetime.timedelta(seconds=300 - 1)
+        self.assertGreater(expiration, expected_expiration_after)
+        expected_expiration_before = datetime.datetime.utcnow() + datetime.timedelta(seconds=300 + 1)
+        self.assertLess(expiration, expected_expiration_before)
+
+    @override_settings(
+        AWS_UPLOAD_EXPIRE_AFTER_SECONDS=3600
+    )
+    def test_sign_upload_honors_config(self):
+        resp = self.client.post('/sign', self.policy_document, format='json')
+        policy_decoded = json.loads(resp.content)['policy_decoded']
+        expiration = datetime.datetime.strptime(policy_decoded['expiration'], '%Y-%m-%dT%H:%M:%SZ')
+        expected_expiration_after = datetime.datetime.utcnow() + datetime.timedelta(seconds=3600 - 1)
+        self.assertGreater(expiration, expected_expiration_after)
+        expected_expiration_before = datetime.datetime.utcnow() + datetime.timedelta(seconds=3600 + 1)
         self.assertLess(expiration, expected_expiration_before)
 
     def test_sign_upload_preserves_conditions(self):
