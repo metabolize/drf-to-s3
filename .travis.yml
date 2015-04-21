@@ -3,10 +3,8 @@ python:
 #  - "3.3"
   - "2.7"
 #  - "2.6"
-addons:
-  apt:
-    packages:
-      - pandoc
+before_install:
+- sudo apt-get install -y pandoc
 install:
 - npm install -g grunt-cli
 - pip install -r requirements_dev.txt
