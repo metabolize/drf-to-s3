@@ -136,6 +136,31 @@ class FineSignPolicyViewSessionAuthTest(APITestCase):
         with self.assertRaises(KeyError):
             content['invalid']
 
+    def test_that_sign_upload_rejects_username_with_trailing_chars_as_prefix(self):
+        self.client.login(
+            username=self.username,
+            password=self.password
+        )
+        prefix = self.username + '_hijack'
+        self.policy_document = {
+            "expiration": "2007-12-01T12:00:00.000Z",
+            "conditions": [
+                {"acl": "private"},
+                {"bucket": "my-bucket"},
+                {"Content-Type": "image/jpeg"},
+                {"success_action_status": 200},
+                {"success_action_redirect": "http://example.com/foo/bar"},
+                {"key": prefix + "/foo/bar/baz.jpg"},
+                {"x-amz-meta-qqfilename": "baz.jpg"},
+                ["content-length-range", 1024, 10240]
+            ]
+        }
+        resp = self.client.post('/sign', self.policy_document, format='json')
+        self.assertEquals(resp.status_code, status.HTTP_403_FORBIDDEN)
+        content = json.loads(resp.content)
+        self.assertTrue(content['invalid'])
+        self.assertTrue(content['error'].startswith('Key should start with '))
+
     def test_that_sign_upload_without_prefix_fails(self):
         self.client.login(
             username=self.username,
