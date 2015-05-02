@@ -15,7 +15,7 @@ class APIUploadTestView(api_client_views.APIUploadCompletionView):
 
 urlpatterns = patterns('',
     url(r'^api/s3/', include('drf_to_s3.urls')),
-    url(r'^api/s3/test_api_uploaded', APIUploadTestView.as_view()),
+    url(r'^api/s3/file_uploaded', APIUploadTestView.as_view()),
 )
 
 @override_settings(
@@ -64,7 +64,7 @@ class FineAPITest(LiveServerTestCase):
         }
 
         resp = self.client.post(
-            '/api/s3/test_api_uploaded',
+            '/api/s3/file_uploaded',
             data=request_payload
         )
 

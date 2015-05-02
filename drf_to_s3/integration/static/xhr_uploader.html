@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset='utf-8'>
+    <title>Integration Test - XMLHttpRequest</title>
+
+    <script src='//ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js'></script>
+    <script src='//cdnjs.cloudflare.com/ajax/libs/jquery-cookie/1.4.0/jquery.cookie.min.js'></script>
+    <script src='xhr_uploader.js'></script>
+
+    <script src='/server_settings'></script>
+    <!--
+
+    Will set the following:
+
+    var server_settings = {
+        upload_bucket: name_of_bucket,
+        s3_access_key: access_key_id,
+    };
+
+    -->
+
+    <style>
+        li span {
+            font-weight: bold;
+        }
+    </style>
+
+</head>
+<body>
+    <ol id='test_results'>
+        <li>
+            Test 1 Binary data with no content-type: <span id="uploader1">Waiting&hellip;</span>
+        </li>
+        <li>
+            Test 2 String data with no content-type: <span id="uploader2">Waiting&hellip;</span>
+        </li>
+<!--         <li>
+            Test 3 String data with text/plain: <span id="uploader3">Waiting&hellip;</span>
+        </li>
+ -->    </ol>
+
+    <script>
+
+        var uploader1 = new S3Uploader('http://localhost:8081/');
+        uploader1.set_upload_content('foo.exe', new Blob([1,2,3,4,5]), null);
+        uploader1
+        .start()
+        .then(function () {
+            document.getElementById('uploader1').innerHTML = 'Pass!';
+        })
+        .fail(function () {
+            document.getElementById('uploader1').innerHTML = 'Fail!';
+        });
+
+        var uploader2 = new S3Uploader('http://localhost:8081/');
+        uploader2.set_upload_content('foo.txt', 'adsf');
+        uploader2
+        .start()
+        .then(function () {
+            document.getElementById('uploader2').innerHTML = 'Pass!';
+        })
+        .fail(function () {
+            document.getElementById('uploader2').innerHTML = 'Fail!';
+        });
+
+        // Currently only works if you don't set content-type.
+        // var uploader3 = new S3Uploader('http://localhost:8081/');
+        // uploader3.set_upload_content('foo.txt', 'adsf', 'text/plain');
+        // uploader3
+        // .start()
+        // .then(function () {
+        //     document.getElementById('uploader3').innerHTML = 'Pass!';
+        // })
+        // .fail(function () {
+        //     document.getElementById('uploader3').innerHTML = 'Fail!';
+        // });
+
+    </script>
+</body>    
+</html>
