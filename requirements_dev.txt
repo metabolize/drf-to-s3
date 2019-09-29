@@ -2,7 +2,7 @@
 
 # You already have these
 Django>=1.6.0,<1.7
-djangorestframework>=2.3,<2.3.99
+djangorestframework>=2.3,<3.10.4
 
 # These are just used for development
 
