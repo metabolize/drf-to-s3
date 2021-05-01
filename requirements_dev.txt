@@ -1,7 +1,7 @@
 -r requirements.txt
 
 # You already have these
-Django>=1.6.0,<1.7
+Django>=1.6.0,<3.3
 djangorestframework>=2.3,<2.3.99
 
 # These are just used for development
